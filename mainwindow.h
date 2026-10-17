@@ -24,6 +24,11 @@ class MainWindow;
 }
 
 class QTimer;
+class QDockWidget;
+
+namespace RangePilot {
+class ChatPanel;
+}
 
 class MainWindow : public QMainWindow, public GtoApi::UiFocusController
 {
@@ -78,6 +83,7 @@ private slots:
 
 private:
     void clear_all_params();
+    void setupChatPanel();
     StrategyExplorer *ensureStrategyExplorer(QString *errorMessage = nullptr);
     bool hasResultTree() const;
     GtoApi::SpotSpec currentSpotFromUi() const;
@@ -87,6 +93,8 @@ private:
     QSolverJob* qSolverJob = NULL;
     QFileSystemModel * qFileSystemModel = NULL;
     QPointer<StrategyExplorer> strategyExplorer;
+    QPointer<QDockWidget> chatDock;
+    QPointer<RangePilot::ChatPanel> chatPanel;
     RangeSelector* rangeSelector = NULL;
     boardselector* boardSelector = NULL;
     SettingEditor* settingEditor = NULL;

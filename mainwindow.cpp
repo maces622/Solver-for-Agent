@@ -9,13 +9,19 @@
 #include "src/api/runtime/gui_solver_job_runner.h"
 #include "src/api/runtime/gui_strategy_result_provider.h"
 #include "src/api/services/gto_application_service.h"
+#include "src/chat/chat_panel.h"
 
+#include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDockWidget>
 #include <QJsonArray>
+#include <QMenu>
 #include <QJsonObject>
 #include <QLineEdit>
+#include <QProcess>
 #include <QRegularExpression>
+#include <QSettings>
 #include <QTextEdit>
 #include <QTimer>
 
@@ -116,6 +122,8 @@ MainWindow::MainWindow(QWidget *parent, GtoApi::GtoApplicationService *applicati
 
         syncStateFromUi();
     }
+
+    setupChatPanel();
 }
 
 QSTextEdit * MainWindow::get_logwindow(){
@@ -124,6 +132,9 @@ QSTextEdit * MainWindow::get_logwindow(){
 
 MainWindow::~MainWindow()
 {
+    if (chatPanel) {
+        chatPanel->shutdown();
+    }
     delete qSolverJob;
     delete qFileSystemModel;
     delete ip_delegate;
@@ -817,6 +828,59 @@ bool isOopPosition(const QString &position)
            || normalized == QStringLiteral("SB");
 }
 } // namespace
+
+namespace {
+
+RangePilot::AcpClientConfig dshClientConfig()
+{
+    RangePilot::AcpClientConfig config;
+    QSettings settings(QStringLiteral("TexasSolver"), QStringLiteral("Setting"));
+    settings.beginGroup(QStringLiteral("dsh"));
+    config.executable = qEnvironmentVariable("RANGEPILOT_DSH_COMMAND");
+    if (config.executable.isEmpty()) {
+        config.executable = settings.value(QStringLiteral("command")).toString();
+    }
+    const QString argumentText = qEnvironmentVariable("RANGEPILOT_DSH_ARGS");
+    if (!argumentText.isEmpty()) {
+        config.arguments = QProcess::splitCommand(argumentText);
+    } else {
+        config.arguments = settings.value(QStringLiteral("arguments"))
+                               .toStringList();
+    }
+    config.workingDirectory = qEnvironmentVariable("RANGEPILOT_DSH_CWD");
+    if (config.workingDirectory.isEmpty()) {
+        config.workingDirectory = settings.value(QStringLiteral("workingDirectory"))
+                                      .toString();
+    }
+    if (config.executable.isEmpty()) {
+        config.executable = QStringLiteral("dsh");
+    }
+    if (config.arguments.isEmpty()
+        && config.executable.endsWith(QStringLiteral("dsh"), Qt::CaseInsensitive)) {
+        config.arguments = QStringList{QStringLiteral("--profile"),
+                                       QStringLiteral("acp")};
+    }
+    settings.endGroup();
+    return config;
+}
+
+} // namespace
+
+void MainWindow::setupChatPanel()
+{
+    chatPanel = new RangePilot::ChatPanel(this);
+    chatDock = new QDockWidget(tr("AI Chat"), this);
+    chatDock->setObjectName(QStringLiteral("aiChatDock"));
+    chatDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    chatDock->setWidget(chatPanel);
+    addDockWidget(Qt::RightDockWidgetArea, chatDock);
+    if (ui && ui->menusolver) {
+        QAction *toggle = chatDock->toggleViewAction();
+        toggle->setText(tr("AI Chat"));
+        ui->menusolver->addAction(toggle);
+    }
+    chatPanel->startSession(dshClientConfig());
+}
 
 void MainWindow::scheduleStateSync()
 {

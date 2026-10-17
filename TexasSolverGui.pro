@@ -42,13 +42,11 @@ ICON = imgs/texassolver_logo.icns
 
 win32: {
 QMAKE_CXXFLAGS+= -openmp
-QMAKE_LFLAGS +=  -openmp
 RC_ICONS = imgs/texassolver_logo.ico
 }
 
 win64: {
 QMAKE_CXXFLAGS+= -openmp
-QMAKE_LFLAGS +=  -openmp
 RC_ICONS = imgs/texassolver_logo.ico
 }
 
@@ -58,7 +56,6 @@ QMAKE_LFLAGS += -fopenmp
 }
 
 QMAKE_CXXFLAGS_RELEASE *= -O2
-QMAKE_LFLAGS += -v
 
 SOURCES += \
     src/api/protocol.cpp \
@@ -71,6 +68,7 @@ SOURCES += \
     src/api/dto/artifact_ref.cpp \
     src/api/services/solver_job_manager.cpp \
     src/api/services/result_query_service.cpp \
+    src/api/services/artifact_store.cpp \
     src/api/events/event_bus.cpp \
     src/api/services/state_store.cpp \
     src/api/services/gto_application_service.cpp \
@@ -80,6 +78,8 @@ SOURCES += \
     src/api/runtime/gui_node_path.cpp \
     main.cpp \
     mainwindow.cpp \
+    src/chat/acp_client.cpp \
+    src/chat/chat_panel.cpp \
     src/Deck.cpp \
     src/Card.cpp \
     src/console.cpp \
@@ -166,6 +166,8 @@ HEADERS += \
     include/trainable/DiscountedCfrTrainableHF.h \
     include/trainable/DiscountedCfrTrainableSF.h \
     mainwindow.h \
+    src/chat/acp_client.h \
+    src/chat/chat_panel.h \
     include/Card.h \
     include/GameTree.h \
     include/Deck.h \

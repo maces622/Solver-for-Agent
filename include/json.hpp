@@ -20662,7 +20662,9 @@ class basic_json
                 instead; that is, replace calls like `j >> o;` with `o << j;`.
     @since version 1.0.0; deprecated since version 3.0.0
     */
+#if !defined(_MSC_VER) || _MSC_VER >= 1920
     JSON_HEDLEY_DEPRECATED(3.0.0)
+#endif
     friend std::ostream& operator>>(const basic_json& j, std::ostream& o)
     {
         return o << j;
@@ -20910,7 +20912,9 @@ class basic_json
                 instead; that is, replace calls like `j << i;` with `i >> j;`.
     @since version 1.0.0; deprecated since version 3.0.0
     */
+#if !defined(_MSC_VER) || _MSC_VER >= 1920
     JSON_HEDLEY_DEPRECATED(3.0.0)
+#endif
     friend std::istream& operator<<(basic_json& j, std::istream& i)
     {
         return operator>>(i, j);
