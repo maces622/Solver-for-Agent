@@ -23,7 +23,9 @@ python tests/api/test_contracts.py
 - asynchronous `solve.start`, `solve.getStatus`, and `solve.cancel` using a fake runner;
 - monotonic `event.state_changed`, `event.solve_queued`, `event.solve_progress`,
   `event.solve_completed`, and `event.solve_cancelled` sequences;
-- `solve.getSummary`, node strategy/EV, exploitability, and artifact metadata methods.
+- `solve.getSummary`, node strategy/EV, exploitability, and artifact metadata methods;
+- `ui.focusNode` selection state, `event.selection_changed`, invalid-node errors,
+  and `ui.openResult`.
 
 ```bash
 mkdir build-api-test

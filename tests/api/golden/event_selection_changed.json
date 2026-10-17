@@ -1,0 +1,10 @@
+{
+  "jsonrpc": "2.0",
+  "method": "event.selection_changed",
+  "params": {
+    "sequence": 9,
+    "revision": 12,
+    "jobId": "job-001",
+    "nodeId": "root/a0/cAh/a1"
+  }
+}

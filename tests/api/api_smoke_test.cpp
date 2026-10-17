@@ -96,6 +96,36 @@ public:
     }
 };
 
+class FakeUiFocusController : public UiFocusController
+{
+public:
+    bool focusNode(const QString &, const QString &nodeId,
+                   QString *errorCode, QString *errorMessage) override
+    {
+        if (nodeId == QStringLiteral("root")
+            || nodeId == QStringLiteral("root/a0")) {
+            lastFocusedNodeId = nodeId;
+            return true;
+        }
+        if (errorCode) {
+            *errorCode = QStringLiteral("NODE_NOT_FOUND");
+        }
+        if (errorMessage) {
+            *errorMessage = QStringLiteral("Node was not found in the game tree");
+        }
+        return false;
+    }
+
+    bool openResult(const QString &, QString * = nullptr, QString * = nullptr) override
+    {
+        openResultCount += 1;
+        return true;
+    }
+
+    QString lastFocusedNodeId;
+    int openResultCount = 0;
+};
+
 class ApiSmokeTest : public QObject
 {
     Q_OBJECT
@@ -109,6 +139,8 @@ public:
         m_service->setSolverJobRunner(m_runner);
         m_resultProvider = new FakeStrategyResultProvider(this);
         m_service->setStrategyResultProvider(m_resultProvider);
+        m_uiController = new FakeUiFocusController();
+        m_service->setUiFocusController(m_uiController);
         m_server = new LocalApiServer(m_service, this);
 
         connect(&m_socket, &QWebSocket::connected, this, &ApiSmokeTest::onConnected);
@@ -218,6 +250,16 @@ private slots:
                 sendRequest(9, QStringLiteral("solve.start"), params);
                 return;
             }
+            if (errorId == 27
+                && error.value(QStringLiteral("code")).toInt() == ErrorCode::NodeNotFound
+                && data.value(QStringLiteral("code")).toString()
+                       == QStringLiteral("NODE_NOT_FOUND")) {
+                m_invalidNodeSeen = true;
+                QJsonObject params;
+                params.insert(QStringLiteral("jobId"), m_job1);
+                sendRequest(28, QStringLiteral("ui.openResult"), params);
+                return;
+            }
             fail(QStringLiteral("JSON-RPC error: %1")
                      .arg(QString::fromUtf8(QJsonDocument(object)
                                                 .toJson(QJsonDocument::Compact))));
@@ -233,7 +275,8 @@ private slots:
                 || !capabilities.contains(QStringLiteral("spot.write"))
                 || !capabilities.contains(QStringLiteral("solve.control"))
                 || !capabilities.contains(QStringLiteral("result.read"))
-                || !capabilities.contains(QStringLiteral("artifact.read"))) {
+                || !capabilities.contains(QStringLiteral("artifact.read"))
+                || !capabilities.contains(QStringLiteral("ui.focus"))) {
                 fail(QStringLiteral("Expected capabilities are missing"));
                 return;
             }
@@ -449,6 +492,50 @@ private slots:
             }
             m_artifactSeen = true;
 
+            QJsonObject params;
+            params.insert(QStringLiteral("jobId"), m_job1);
+            params.insert(QStringLiteral("nodeId"), QStringLiteral("root/a0"));
+            sendRequest(25, QStringLiteral("ui.focusNode"), params);
+            return;
+        }
+        if (id == 25) {
+            if (result.value(QStringLiteral("jobId")).toString() != m_job1
+                || result.value(QStringLiteral("nodeId")).toString()
+                       != QStringLiteral("root/a0")
+                || m_uiController->lastFocusedNodeId
+                       != QStringLiteral("root/a0")) {
+                fail(QStringLiteral("ui.focusNode returned an unexpected result"));
+                return;
+            }
+            m_uiFocusSeen = true;
+            sendRequest(26, QStringLiteral("state.get"), QJsonObject());
+            return;
+        }
+        if (id == 26) {
+            const QJsonObject selection =
+                result.value(QStringLiteral("selection")).toObject();
+            if (selection.value(QStringLiteral("nodeId")).toString()
+                != QStringLiteral("root/a0")) {
+                fail(QStringLiteral("Focused node is missing from state.get"));
+                return;
+            }
+            m_selectionStateSeen = true;
+            m_lastRevision = result.value(QStringLiteral("revision")).toInt();
+
+            QJsonObject params;
+            params.insert(QStringLiteral("jobId"), m_job1);
+            params.insert(QStringLiteral("nodeId"), QStringLiteral("root/a99"));
+            sendRequest(27, QStringLiteral("ui.focusNode"), params);
+            return;
+        }
+        if (id == 28) {
+            if (!result.value(QStringLiteral("opened")).toBool()
+                || m_uiController->openResultCount != 1) {
+                fail(QStringLiteral("ui.openResult returned an unexpected result"));
+                return;
+            }
+            m_openResultSeen = true;
+
             QJsonObject options;
             options.insert(QStringLiteral("maxIterations"), 100);
             options.insert(QStringLiteral("targetExploitability"), 0.2);
@@ -558,6 +645,16 @@ private:
         if (method == QStringLiteral("event.state_changed")) {
             return;
         }
+        if (method == QStringLiteral("event.selection_changed")) {
+            if (params.value(QStringLiteral("jobId")).toString() != m_job1
+                || params.value(QStringLiteral("nodeId")).toString()
+                       != QStringLiteral("root/a0")) {
+                fail(QStringLiteral("event.selection_changed has unexpected data"));
+                return;
+            }
+            m_selectionEventSeen = true;
+            return;
+        }
         if (method == QStringLiteral("event.solve_queued")) {
             ++m_queuedEventCount;
             return;
@@ -618,7 +715,10 @@ private:
             || !m_completedEventSeen || !m_cancelledEventSeen
             || !m_completedStatusSeen || !m_cancelledStatusSeen
             || !m_summarySeen || !m_nodeStrategySeen || !m_actionEvSeen
-            || !m_exploitabilitySeen || !m_artifactSeen) {
+            || !m_exploitabilitySeen || !m_artifactSeen
+            || !m_uiFocusSeen || !m_selectionStateSeen
+            || !m_selectionEventSeen || !m_invalidNodeSeen
+            || !m_openResultSeen) {
             return;
         }
         m_socket.close();
@@ -639,6 +739,7 @@ private:
     GtoApplicationService *m_service = nullptr;
     FakeSolverRunner *m_runner = nullptr;
     FakeStrategyResultProvider *m_resultProvider = nullptr;
+    FakeUiFocusController *m_uiController = nullptr;
     LocalApiServer *m_server = nullptr;
     QWebSocket m_socket;
     QString m_discoveryPath;
@@ -660,6 +761,11 @@ private:
     bool m_actionEvSeen = false;
     bool m_exploitabilitySeen = false;
     bool m_artifactSeen = false;
+    bool m_uiFocusSeen = false;
+    bool m_selectionStateSeen = false;
+    bool m_selectionEventSeen = false;
+    bool m_invalidNodeSeen = false;
+    bool m_openResultSeen = false;
     QString m_artifact1;
     int m_lastRevision = 0;
 };

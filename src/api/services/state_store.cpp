@@ -28,6 +28,14 @@ bool StateStore::setSpot(const SpotSpec &spot)
     return updateFromGui(spot, m_snapshot.tree, m_snapshot.solve, m_snapshot.selection);
 }
 
+bool StateStore::setSelection(const QString &nodeId)
+{
+    QJsonObject selection;
+    selection.insert(QStringLiteral("nodeId"), nodeId);
+    return updateFromGui(m_snapshot.spot, m_snapshot.tree,
+                         m_snapshot.solve, selection);
+}
+
 bool StateStore::updateFromGui(const SpotSpec &spot,
                                const QJsonValue &tree,
                                const QJsonValue &solve,

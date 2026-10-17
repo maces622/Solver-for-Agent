@@ -36,6 +36,14 @@ public:
     explicit StrategyExplorer(QWidget *parent = 0,QSolverJob * qSolverJob=nullptr);
     ~StrategyExplorer();
 
+    // Focuses one deterministic API tree node by expanding the materialized
+    // tree as needed, selecting it, and refreshing the strategy views.
+    bool focusNode(const QString &nodeId, QString *errorMessage = nullptr);
+    QString currentNodeId(QString *errorMessage = nullptr) const;
+
+signals:
+    void nodeSelected(const QString &nodeId);
+
 private:
     DetailWindowSetting detailWindowSetting;
     QTimer *timer;
@@ -48,8 +56,10 @@ private:
     RoughStrategyViewerModel * roughStrategyViewerModel;
     RoughStrategyItemDelegate * roughStrategyItemDelegate;
     vector<Card> cards;
+    bool updatingFocus = false;
     void process_treeclick(TreeItem* treeitem);
     void process_board(TreeItem* treeitem);
+    void emitNodeSelected();
 public slots:
     void item_expanded(const QModelIndex& index);
     void item_clicked(const QModelIndex& index);

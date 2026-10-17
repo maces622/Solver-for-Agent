@@ -1,5 +1,6 @@
 #include "gto_application_service.h"
 
+#include "../node_path.h"
 #include "../protocol.h"
 #include "solver_job_manager.h"
 #include "result_query_service.h"
@@ -110,7 +111,7 @@ QString GtoApplicationService::sessionId() const
 
 QStringList GtoApplicationService::capabilities() const
 {
-    return {QStringLiteral("state.read"), QStringLiteral("spot.write"), QStringLiteral("solve.control"), QStringLiteral("result.read"), QStringLiteral("artifact.read")};
+    return {QStringLiteral("state.read"), QStringLiteral("spot.write"), QStringLiteral("solve.control"), QStringLiteral("result.read"), QStringLiteral("artifact.read"), QStringLiteral("ui.focus")};
 }
 
 QJsonObject GtoApplicationService::getCapabilities() const
@@ -136,6 +137,8 @@ QJsonObject GtoApplicationService::getCapabilities() const
     appendMethod(methods, QStringLiteral("result.getActionEv"), QStringLiteral("result.read"), false);
     appendMethod(methods, QStringLiteral("result.getExploitability"), QStringLiteral("result.read"), false);
     appendMethod(methods, QStringLiteral("artifact.getMetadata"), QStringLiteral("artifact.read"), false);
+    appendMethod(methods, QStringLiteral("ui.focusNode"), QStringLiteral("ui.focus"), false);
+    appendMethod(methods, QStringLiteral("ui.openResult"), QStringLiteral("ui.focus"), false);
 
     QJsonObject limits;
     limits.insert(QStringLiteral("maxMessageBytes"), MaxMessageBytes);
@@ -257,6 +260,93 @@ void GtoApplicationService::publishStateForJob(const JobStatus &status)
 void GtoApplicationService::setStrategyResultProvider(StrategyResultProvider *provider)
 {
     m_resultQueryService->setProvider(provider);
+}
+
+void GtoApplicationService::setUiFocusController(UiFocusController *controller)
+{
+    m_uiFocusController = controller;
+}
+
+UiFocusResult GtoApplicationService::focusNode(const QString &jobId,
+                                               const QString &nodeId)
+{
+    UiFocusResult result;
+    result.jobId = jobId;
+    result.nodeId = nodeId;
+
+    bool found = false;
+    m_jobManager->getStatus(jobId, &found);
+    if (!found) {
+        result.errorCode = QStringLiteral("JOB_NOT_FOUND");
+        result.errorMessage = QStringLiteral("Solve job was not found");
+        return result;
+    }
+    if (!isValidNodePathSyntax(nodeId, &result.errorMessage)) {
+        result.errorCode = QStringLiteral("NODE_NOT_FOUND");
+        return result;
+    }
+    if (!m_uiFocusController) {
+        result.errorCode = QStringLiteral("RESULT_NOT_READY");
+        result.errorMessage = QStringLiteral("GUI result focus is not available");
+        return result;
+    }
+    if (!m_uiFocusController->focusNode(jobId, nodeId,
+                                        &result.errorCode,
+                                        &result.errorMessage)) {
+        if (result.errorCode.isEmpty()) {
+            result.errorCode = QStringLiteral("NODE_NOT_FOUND");
+        }
+        if (result.errorMessage.isEmpty()) {
+            result.errorMessage = QStringLiteral("Node could not be focused");
+        }
+        return result;
+    }
+
+    m_stateStore->setSelection(nodeId);
+    result.revision = m_stateStore->revision();
+    result.success = true;
+    emit uiFocusNodeRequested(jobId, nodeId);
+
+    QJsonObject params;
+    params.insert(QStringLiteral("jobId"), jobId);
+    params.insert(QStringLiteral("nodeId"), nodeId);
+    params.insert(QStringLiteral("revision"), static_cast<double>(result.revision));
+    m_eventBus->publish(QStringLiteral("event.selection_changed"), params);
+    return result;
+}
+
+UiOpenResult GtoApplicationService::openResult(const QString &jobId)
+{
+    UiOpenResult result;
+    result.jobId = jobId;
+
+    bool found = false;
+    m_jobManager->getStatus(jobId, &found);
+    if (!found) {
+        result.errorCode = QStringLiteral("JOB_NOT_FOUND");
+        result.errorMessage = QStringLiteral("Solve job was not found");
+        return result;
+    }
+    if (!m_uiFocusController) {
+        result.errorCode = QStringLiteral("RESULT_NOT_READY");
+        result.errorMessage = QStringLiteral("GUI result focus is not available");
+        return result;
+    }
+    if (!m_uiFocusController->openResult(jobId,
+                                         &result.errorCode,
+                                         &result.errorMessage)) {
+        if (result.errorCode.isEmpty()) {
+            result.errorCode = QStringLiteral("RESULT_NOT_READY");
+        }
+        if (result.errorMessage.isEmpty()) {
+            result.errorMessage = QStringLiteral("Result panel could not be opened");
+        }
+        return result;
+    }
+
+    result.success = true;
+    emit uiOpenResultRequested(jobId);
+    return result;
 }
 
 ResultQueryService *GtoApplicationService::resultQueryService() const

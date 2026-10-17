@@ -783,6 +783,64 @@ QJsonObject LocalApiServer::dispatch(QWebSocket *socket, const QJsonObject &requ
         }
         return makeSuccess(id, result);
     }
+    if (method == QStringLiteral("ui.focusNode")) {
+        if (!capabilityEnabled(QStringLiteral("ui.focus"))) {
+            return makeFailure(id, ErrorCode::CapabilityDisabled,
+                               QStringLiteral("Capability is disabled"),
+                               errorData(QStringLiteral("CAPABILITY_DISABLED"),
+                                         QJsonObject{{QStringLiteral("capability"),
+                                                      QStringLiteral("ui.focus")}}));
+        }
+        const QJsonValue jobIdValue = params.value(QStringLiteral("jobId"));
+        if (!jobIdValue.isString() || jobIdValue.toString().isEmpty()) {
+            return makeFailure(id, ErrorCode::InvalidParams,
+                               QStringLiteral("jobId must be a non-empty string"),
+                               errorData(QStringLiteral("INVALID_JOB_ID")));
+        }
+        const QJsonValue nodeIdValue = params.value(QStringLiteral("nodeId"));
+        if (!nodeIdValue.isString() || nodeIdValue.toString().isEmpty()) {
+            return makeFailure(id, ErrorCode::InvalidParams,
+                               QStringLiteral("nodeId must be a non-empty string"),
+                               errorData(QStringLiteral("INVALID_NODE_ID")));
+        }
+        const UiFocusResult result =
+            m_service->focusNode(jobIdValue.toString(), nodeIdValue.toString());
+        if (!result.success) {
+            return makeFailure(id, resultErrorRpcCode(result.errorCode),
+                               result.errorMessage, errorData(result.errorCode));
+        }
+        QJsonObject response;
+        response.insert(QStringLiteral("jobId"), result.jobId);
+        response.insert(QStringLiteral("nodeId"), result.nodeId);
+        response.insert(QStringLiteral("revision"), static_cast<double>(result.revision));
+        return makeSuccess(id, response);
+    }
+
+    if (method == QStringLiteral("ui.openResult")) {
+        if (!capabilityEnabled(QStringLiteral("ui.focus"))) {
+            return makeFailure(id, ErrorCode::CapabilityDisabled,
+                               QStringLiteral("Capability is disabled"),
+                               errorData(QStringLiteral("CAPABILITY_DISABLED"),
+                                         QJsonObject{{QStringLiteral("capability"),
+                                                      QStringLiteral("ui.focus")}}));
+        }
+        const QJsonValue jobIdValue = params.value(QStringLiteral("jobId"));
+        if (!jobIdValue.isString() || jobIdValue.toString().isEmpty()) {
+            return makeFailure(id, ErrorCode::InvalidParams,
+                               QStringLiteral("jobId must be a non-empty string"),
+                               errorData(QStringLiteral("INVALID_JOB_ID")));
+        }
+        const UiOpenResult result = m_service->openResult(jobIdValue.toString());
+        if (!result.success) {
+            return makeFailure(id, resultErrorRpcCode(result.errorCode),
+                               result.errorMessage, errorData(result.errorCode));
+        }
+        QJsonObject response;
+        response.insert(QStringLiteral("jobId"), result.jobId);
+        response.insert(QStringLiteral("opened"), true);
+        return makeSuccess(id, response);
+    }
+
     return makeFailure(id, ErrorCode::MethodNotFound,
                        QStringLiteral("Method not found"),
                        errorData(QStringLiteral("METHOD_NOT_FOUND"),

@@ -6,6 +6,10 @@
 #include <QComboBox>
 #include <QColor>
 #include "include/Card.h"
+#include "src/api/runtime/gui_node_path.h"
+
+#include <QAbstractItemView>
+#include <QItemSelectionModel>
 
 StrategyExplorer::StrategyExplorer(QWidget *parent,QSolverJob * qSolverJob) :
     QDialog(parent),
@@ -177,6 +181,109 @@ void StrategyExplorer::item_clicked(const QModelIndex& index){
         qDebug().noquote() << tr("Encountering error:");//.toStdString() << endl;
         qDebug().noquote() << error.what() << "\n";
     }
+    emitNodeSelected();
+}
+
+bool StrategyExplorer::focusNode(const QString &nodeId, QString *errorMessage)
+{
+    if (!qSolverJob || !qSolverJob->get_solver()
+        || !qSolverJob->get_solver()->get_game_tree()
+        || !qSolverJob->get_solver()->get_game_tree()->getRoot()) {
+        if (errorMessage) {
+            *errorMessage = QStringLiteral("Game tree is not ready");
+        }
+        return false;
+    }
+
+    QVector<shared_ptr<GameTreeNode>> path;
+    QVector<Card> chanceCards;
+    if (!GtoApi::resolveGuiNodePath(
+            qSolverJob->get_solver()->get_game_tree()->getRoot(),
+            nodeId, &path, &chanceCards, errorMessage)) {
+        return false;
+    }
+
+    updatingFocus = true;
+    int cardIndex = 0;
+    for (const shared_ptr<GameTreeNode> &node : path) {
+        if (!node || node->getType() != GameTreeNode::GameTreeNodeType::CHANCE) {
+            continue;
+        }
+        if (cardIndex >= chanceCards.size()) {
+            break;
+        }
+        Card card = chanceCards.at(cardIndex++);
+        const QString cardText = QString::fromStdString(card.toString());
+        int comboIndex = -1;
+        for (int index = 0; index < cards.size(); ++index) {
+            Card candidate = cards.at(index);
+            if (QString::fromStdString(candidate.toString()).compare(
+                    cardText, Qt::CaseInsensitive) == 0) {
+                comboIndex = index;
+                break;
+            }
+        }
+        if (comboIndex < 0) {
+            continue;
+        }
+        const auto chance = std::dynamic_pointer_cast<ChanceNode>(node);
+        if (chance && chance->getRound() == GameTreeNode::GameRound::RIVER) {
+            ui->riverCardBox->setCurrentIndex(comboIndex);
+        } else {
+            ui->turnCardBox->setCurrentIndex(comboIndex);
+        }
+    }
+
+    const QModelIndex target =
+        ui->gameTreeView->tree_model->indexForNodePath(path, errorMessage);
+    if (!target.isValid()) {
+        updatingFocus = false;
+        return false;
+    }
+
+    QVector<QModelIndex> ancestors;
+    for (QModelIndex parent = target.parent(); parent.isValid(); parent = parent.parent()) {
+        ancestors.prepend(parent);
+    }
+    for (const QModelIndex &ancestor : ancestors) {
+        ui->gameTreeView->expand(ancestor);
+    }
+    ui->gameTreeView->setCurrentIndex(target);
+    ui->gameTreeView->scrollTo(target, QAbstractItemView::PositionAtCenter);
+    item_clicked(target);
+
+    updatingFocus = false;
+    emitNodeSelected();
+    return true;
+}
+
+QString StrategyExplorer::currentNodeId(QString *errorMessage) const
+{
+    if (!ui || !ui->gameTreeView->tree_model) {
+        if (errorMessage) {
+            *errorMessage = QStringLiteral("Game tree is not available");
+        }
+        return QString();
+    }
+    Card turnCard = tableStrategyModel->getTrunCard();
+    Card riverCard = tableStrategyModel->getRiverCard();
+    return ui->gameTreeView->tree_model->nodeIdForIndex(
+        ui->gameTreeView->currentIndex(),
+        QString::fromStdString(turnCard.toString()),
+        QString::fromStdString(riverCard.toString()),
+        errorMessage);
+}
+
+void StrategyExplorer::emitNodeSelected()
+{
+    if (updatingFocus) {
+        return;
+    }
+    QString errorMessage;
+    const QString nodeId = currentNodeId(&errorMessage);
+    if (!nodeId.isEmpty()) {
+        emit nodeSelected(nodeId);
+    }
 }
 
 void StrategyExplorer::selection_changed(const QItemSelection &selected,
@@ -195,6 +302,7 @@ void StrategyExplorer::on_turnCardBox_currentIndexChanged(int index)
     }
     this->ui->strategyTableView->viewport()->update();
     this->ui->detailView->viewport()->update();
+    emitNodeSelected();
 }
 
 void StrategyExplorer::on_riverCardBox_currentIndexChanged(int index)
@@ -208,6 +316,7 @@ void StrategyExplorer::on_riverCardBox_currentIndexChanged(int index)
     }
     this->ui->strategyTableView->viewport()->update();
     this->ui->detailView->viewport()->update();
+    emitNodeSelected();
 }
 
 void StrategyExplorer::update_second(){

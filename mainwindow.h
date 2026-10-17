@@ -4,8 +4,10 @@
 #include <QMainWindow>
 #include <QTextEdit>
 #include <QJsonValue>
+#include <QPointer>
 #include <QStringList>
 #include "src/api/dto/spot_spec.h"
+#include "src/api/services/gto_application_service.h"
 #include <QPlainTextEdit>
 #include "include/runtime/qsolverjob.h"
 #include "qstextedit.h"
@@ -23,11 +25,7 @@ class MainWindow;
 
 class QTimer;
 
-namespace GtoApi {
-class GtoApplicationService;
-}
-
-class MainWindow : public QMainWindow
+class MainWindow : public QMainWindow, public GtoApi::UiFocusController
 {
     Q_OBJECT
 
@@ -38,6 +36,13 @@ public:
     Ui::MainWindow * getPriUi();
     QSTextEdit * getLogArea();
     QSTextEdit * get_logwindow();
+
+    bool focusNode(const QString &jobId, const QString &nodeId,
+                   QString *errorCode = nullptr,
+                   QString *errorMessage = nullptr) override;
+    bool openResult(const QString &jobId,
+                    QString *errorCode = nullptr,
+                    QString *errorMessage = nullptr) override;
 
 private slots:
     void on_buttomSolve_clicked();
@@ -69,16 +74,19 @@ private slots:
     void scheduleStateSync();
     void syncStateFromUi();
     void applySpotFromService(const GtoApi::SpotSpec &spot);
+    void onStrategyNodeSelected(const QString &nodeId);
 
 private:
     void clear_all_params();
+    StrategyExplorer *ensureStrategyExplorer(QString *errorMessage = nullptr);
+    bool hasResultTree() const;
     GtoApi::SpotSpec currentSpotFromUi() const;
     QJsonValue currentTreeState() const;
     QJsonValue currentSolveState() const;
     Ui::MainWindow *ui = NULL;
     QSolverJob* qSolverJob = NULL;
     QFileSystemModel * qFileSystemModel = NULL;
-    StrategyExplorer* strategyExplorer = NULL;
+    QPointer<StrategyExplorer> strategyExplorer;
     RangeSelector* rangeSelector = NULL;
     boardselector* boardSelector = NULL;
     SettingEditor* settingEditor = NULL;
@@ -92,6 +100,7 @@ private:
     QString oopPosition = QStringLiteral("OOP");
     QString ipPosition = QStringLiteral("IP");
     bool applyingStateUpdate = false;
+    QJsonValue currentSelection = QJsonValue::Null;
 
 };
 

@@ -20,6 +20,7 @@ public:
     qint64 revision() const;
 
     bool setSpot(const SpotSpec &spot);
+    bool setSelection(const QString &nodeId);
     bool updateFromGui(const SpotSpec &spot,
                        const QJsonValue &tree,
                        const QJsonValue &solve,

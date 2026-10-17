@@ -59,6 +59,11 @@ CASES = [
     ("result.getExploitability.response.schema.json", "exploitability.response.json"),
     ("artifact.getMetadata.request.schema.json", "artifact_metadata.request.json"),
     ("artifact.getMetadata.response.schema.json", "artifact_metadata.response.json"),
+    ("ui.focusNode.request.schema.json", "ui_focus_node.request.json"),
+    ("ui.focusNode.response.schema.json", "ui_focus_node.response.json"),
+    ("ui.openResult.request.schema.json", "ui_open_result.request.json"),
+    ("ui.openResult.response.schema.json", "ui_open_result.response.json"),
+    ("event.selection_changed.schema.json", "event_selection_changed.json"),
     ("error.schema.json", "error_unauthorized.json"),
 ]
 

@@ -14,7 +14,8 @@
       "spot.write",
       "solve.control",
       "result.read",
-      "artifact.read"
+      "artifact.read",
+      "ui.focus"
     ]
   }
 }

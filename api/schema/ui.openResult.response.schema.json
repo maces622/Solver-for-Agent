@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ui.openResult response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jsonrpc", "id", "result"],
+  "properties": {
+    "jsonrpc": { "const": "2.0" },
+    "id": { "type": ["string", "integer", "null"] },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jobId", "opened"],
+      "properties": {
+        "jobId": { "type": "string", "minLength": 1 },
+        "opened": { "const": true }
+      }
+    }
+  }
+}

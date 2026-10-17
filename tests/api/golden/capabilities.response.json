@@ -8,7 +8,8 @@
       "spot.write",
       "solve.control",
       "result.read",
-      "artifact.read"
+      "artifact.read",
+      "ui.focus"
     ],
     "methods": [
       {
@@ -84,6 +85,16 @@
       {
         "name": "artifact.getMetadata",
         "capability": "artifact.read",
+        "async": false
+      },
+      {
+        "name": "ui.focusNode",
+        "capability": "ui.focus",
+        "async": false
+      },
+      {
+        "name": "ui.openResult",
+        "capability": "ui.focus",
         "async": false
       }
     ],

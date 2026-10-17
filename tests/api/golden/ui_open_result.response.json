@@ -1,0 +1,8 @@
+{
+  "jsonrpc": "2.0",
+  "id": 26,
+  "result": {
+    "jobId": "job-001",
+    "opened": true
+  }
+}

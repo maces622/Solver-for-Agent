@@ -1,5 +1,7 @@
 #include "gui_strategy_result_provider.h"
 
+#include "gui_node_path.h"
+
 #include "include/GameTree.h"
 #include "include/solver/Solver.h"
 #include "include/nodes/ActionNode.h"
@@ -22,98 +24,6 @@ QString canonicalActionName(GameActions &action)
     QString name = QString::fromStdString(action.toString()).toLower();
     name.replace(QLatin1Char(' '), QLatin1Char('_'));
     return name;
-}
-
-bool resolveActionNode(const shared_ptr<GameTreeNode> &root,
-                       const QString &nodeId,
-                       shared_ptr<ActionNode> *actionNode,
-                       QVector<Card> *chanceCards,
-                       QString *errorMessage)
-{
-    const QStringList segments = nodeId.split(QLatin1Char('/'), Qt::SkipEmptyParts);
-    if (segments.isEmpty() || segments.first() != QStringLiteral("root")) {
-        if (errorMessage) {
-            *errorMessage = QStringLiteral("Node id must start with root");
-        }
-        return false;
-    }
-
-    shared_ptr<GameTreeNode> current = root;
-    for (int index = 1; index < segments.size(); ++index) {
-        const QString segment = segments.at(index);
-        if (!current) {
-            if (errorMessage) {
-                *errorMessage = QStringLiteral("Node path is incomplete");
-            }
-            return false;
-        }
-
-        if (current->getType() == GameTreeNode::ACTION) {
-            if (!segment.startsWith(QLatin1Char('a'))) {
-                if (errorMessage) {
-                    *errorMessage = QStringLiteral("Action node segment must start with 'a': %1")
-                                        .arg(segment);
-                }
-                return false;
-            }
-            bool ok = false;
-            const int childIndex = segment.mid(1).toInt(&ok);
-            const auto action = std::dynamic_pointer_cast<ActionNode>(current);
-            if (!ok || childIndex < 0
-                || childIndex >= static_cast<int>(action->getChildrens().size())) {
-                if (errorMessage) {
-                    *errorMessage = QStringLiteral("Invalid action child index: %1").arg(segment);
-                }
-                return false;
-            }
-            current = action->getChildrens().at(childIndex);
-        } else if (current->getType() == GameTreeNode::CHANCE) {
-            if (!segment.startsWith(QLatin1Char('c'))) {
-                if (errorMessage) {
-                    *errorMessage = QStringLiteral("Chance node segment must start with 'c': %1")
-                                        .arg(segment);
-                }
-                return false;
-            }
-            QString cardText = segment.mid(1);
-            if (cardText.startsWith(QLatin1Char(':'))) {
-                cardText = cardText.mid(1);
-            }
-            const auto chance = std::dynamic_pointer_cast<ChanceNode>(current);
-            bool found = false;
-            for (const Card &card : chance->getCards()) {
-                Card cardCopy = card;
-                if (QString::fromStdString(cardCopy.toString()).compare(
-                        cardText, Qt::CaseInsensitive) == 0) {
-                    chanceCards->append(cardCopy);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                if (errorMessage) {
-                    *errorMessage = QStringLiteral("Card %1 is not available at this chance node")
-                                        .arg(cardText);
-                }
-                return false;
-            }
-            current = chance->getChildren();
-        } else {
-            if (errorMessage) {
-                *errorMessage = QStringLiteral("Node path cannot continue through a terminal node");
-            }
-            return false;
-        }
-    }
-
-    if (!current || current->getType() != GameTreeNode::ACTION) {
-        if (errorMessage) {
-            *errorMessage = QStringLiteral("Node id does not resolve to an action node");
-        }
-        return false;
-    }
-    *actionNode = std::dynamic_pointer_cast<ActionNode>(current);
-    return true;
 }
 
 } // namespace
@@ -189,8 +99,8 @@ bool GuiStrategyResultProvider::getTreeSummary(const QString &,
 
     shared_ptr<ActionNode> actionNode;
     QVector<Card> chanceCards;
-    if (!resolveActionNode(pokerSolver->get_game_tree()->getRoot(),
-                           nodeId, &actionNode, &chanceCards, errorMessage)) {
+    if (!resolveGuiActionNode(pokerSolver->get_game_tree()->getRoot(),
+                              nodeId, &actionNode, &chanceCards, errorMessage)) {
         if (errorCode) {
             *errorCode = QStringLiteral("NODE_NOT_FOUND");
         }

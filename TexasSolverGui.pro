@@ -62,6 +62,7 @@ QMAKE_LFLAGS += -v
 
 SOURCES += \
     src/api/protocol.cpp \
+    src/api/node_path.cpp \
     src/api/api_server.cpp \
     src/api/dto/spot_spec.cpp \
     src/api/dto/state_snapshot.cpp \
@@ -76,6 +77,7 @@ SOURCES += \
     src/api/services/spot_validator.cpp \
     src/api/runtime/gui_solver_job_runner.cpp \
     src/api/runtime/gui_strategy_result_provider.cpp \
+    src/api/runtime/gui_node_path.cpp \
     main.cpp \
     mainwindow.cpp \
     src/Deck.cpp \
@@ -141,6 +143,7 @@ SOURCES += \
 
 HEADERS += \
     src/api/protocol.h \
+    src/api/node_path.h \
     src/api/api_server.h \
     src/api/dto/spot_spec.h \
     src/api/dto/state_snapshot.h \
@@ -158,6 +161,7 @@ HEADERS += \
     src/api/services/spot_validator.h \
     src/api/runtime/gui_solver_job_runner.h \
     src/api/runtime/gui_strategy_result_provider.h \
+    src/api/runtime/gui_node_path.h \
     include/tools/half-1-12-0.h \
     include/trainable/DiscountedCfrTrainableHF.h \
     include/trainable/DiscountedCfrTrainableSF.h \

@@ -20,7 +20,7 @@ struct ApiServerConfig
 {
     quint16 port = 0;
     QString discoveryFilePath;
-    QStringList enabledCapabilities = {QStringLiteral("state.read"), QStringLiteral("spot.write"), QStringLiteral("solve.control"), QStringLiteral("result.read"), QStringLiteral("artifact.read")};
+    QStringList enabledCapabilities = {QStringLiteral("state.read"), QStringLiteral("spot.write"), QStringLiteral("solve.control"), QStringLiteral("result.read"), QStringLiteral("artifact.read"), QStringLiteral("ui.focus")};
 };
 
 class LocalApiServer : public QObject

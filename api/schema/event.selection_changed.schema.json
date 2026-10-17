@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "event.selection_changed",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jsonrpc", "method", "params"],
+  "properties": {
+    "jsonrpc": { "const": "2.0" },
+    "method": { "const": "event.selection_changed" },
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "revision", "jobId", "nodeId"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 1 },
+        "revision": { "type": "integer", "minimum": 0 },
+        "jobId": { "type": "string", "minLength": 1 },
+        "nodeId": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

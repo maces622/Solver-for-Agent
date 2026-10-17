@@ -10,6 +10,7 @@ INCLUDEPATH += ../..
 SOURCES += \
     api_smoke_test.cpp \
     ../../src/api/protocol.cpp \
+    ../../src/api/node_path.cpp \
     ../../src/api/api_server.cpp \
     ../../src/api/dto/spot_spec.cpp \
     ../../src/api/dto/state_snapshot.cpp \
@@ -26,6 +27,7 @@ SOURCES += \
 
 HEADERS += \
     ../../src/api/protocol.h \
+    ../../src/api/node_path.h \
     ../../src/api/api_server.h \
     ../../src/api/dto/spot_spec.h \
     ../../src/api/dto/state_snapshot.h \

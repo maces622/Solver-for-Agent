@@ -1,0 +1,9 @@
+{
+  "jsonrpc": "2.0",
+  "id": 25,
+  "result": {
+    "jobId": "job-001",
+    "nodeId": "root/a0/cAh/a1",
+    "revision": 12
+  }
+}

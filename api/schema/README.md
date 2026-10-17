@@ -2,7 +2,7 @@
 
 This directory is the contract source of truth for the local WebSocket JSON-RPC API.
 
-Stage 4 exposes state reads, revision-protected spot writes, asynchronous solve control, result queries, and artifact metadata:
+Stage 5 adds GUI result focus and node selection on top of the stage 4 API:
 
 - `system.hello`
 - `system.getCapabilities`
@@ -19,7 +19,10 @@ Stage 4 exposes state reads, revision-protected spot writes, asynchronous solve 
 - `result.getActionEv`
 - `result.getExploitability`
 - `artifact.getMetadata`
+- `ui.focusNode`
+- `ui.openResult`
 - `event.state_changed`
+- `event.selection_changed`
 - `event.solve_queued`
 - `event.solve_progress`
 - `event.solve_completed`
@@ -49,3 +52,6 @@ Node IDs are deterministic tree paths:
 - `root/a0/cAh/a1` — first action child after the turn card `Ah`
 
 `aN` selects an action child by index. `c<card>` selects one card branch at a chance node.
+`ui.focusNode` uses this same path format and increments the state revision when
+the selected node changes. Focus failures return the structured `NODE_NOT_FOUND`
+error and leave the selection unchanged.

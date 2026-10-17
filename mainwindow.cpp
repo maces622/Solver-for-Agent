@@ -85,6 +85,7 @@ MainWindow::MainWindow(QWidget *parent, GtoApi::GtoApplicationService *applicati
             new GtoApi::GuiSolverJobRunner(qSolverJob, this));
         applicationService->setStrategyResultProvider(
             new GtoApi::GuiStrategyResultProvider(qSolverJob, this));
+        applicationService->setUiFocusController(this);
         stateSyncTimer = new QTimer(this);
         stateSyncTimer->setSingleShot(true);
         stateSyncTimer->setInterval(50);
@@ -584,9 +585,10 @@ void MainWindow::on_copyButtom_clicked()
 
 void MainWindow::on_showResultButton_clicked()
 {
-    this->strategyExplorer = new StrategyExplorer(this,this->qSolverJob);
-    strategyExplorer->setAttribute(Qt::WA_DeleteOnClose);
-    strategyExplorer->show();
+    QString errorMessage;
+    if (!ensureStrategyExplorer(&errorMessage)) {
+        QMessageBox::warning(this, tr("Result"), errorMessage);
+    }
 }
 
 void MainWindow::on_stopSolvingButton_clicked()
@@ -891,6 +893,7 @@ void MainWindow::applySpotFromService(const GtoApi::SpotSpec &spot)
     applySizingSide(ui->river_ip_bet, ui->river_ip_raise, nullptr,
                     ui->river_ip_allin, riverIp);
 
+    currentSelection = QJsonValue::Null;
     if (stateSyncTimer) {
         stateSyncTimer->stop();
     }
@@ -1015,5 +1018,91 @@ void MainWindow::syncStateFromUi()
     applicationService->updateFromGui(currentSpotFromUi(),
                                       currentTreeState(),
                                       currentSolveState(),
-                                      QJsonValue::Null);
+                                      currentSelection);
+}
+
+StrategyExplorer *MainWindow::ensureStrategyExplorer(QString *errorMessage)
+{
+    if (!strategyExplorer.isNull()) {
+        strategyExplorer->show();
+        strategyExplorer->raise();
+        strategyExplorer->activateWindow();
+        return strategyExplorer;
+    }
+    if (!hasResultTree()) {
+        if (errorMessage) {
+            *errorMessage = tr("Solve result is not ready");
+        }
+        return nullptr;
+    }
+
+    strategyExplorer = new StrategyExplorer(this, qSolverJob);
+    strategyExplorer->setAttribute(Qt::WA_DeleteOnClose);
+    connect(strategyExplorer, &StrategyExplorer::nodeSelected,
+            this, &MainWindow::onStrategyNodeSelected);
+    strategyExplorer->show();
+    strategyExplorer->raise();
+    strategyExplorer->activateWindow();
+    return strategyExplorer;
+}
+
+bool MainWindow::hasResultTree() const
+{
+    if (!qSolverJob) {
+        return false;
+    }
+    PokerSolver *solver = qSolverJob->get_solver();
+    return solver && solver->get_game_tree() && solver->get_game_tree()->getRoot();
+}
+
+bool MainWindow::focusNode(const QString &jobId, const QString &nodeId,
+                           QString *errorCode, QString *errorMessage)
+{
+    Q_UNUSED(jobId)
+    StrategyExplorer *explorer = ensureStrategyExplorer(errorMessage);
+    if (!explorer) {
+        if (errorCode) {
+            *errorCode = QStringLiteral("RESULT_NOT_READY");
+        }
+        return false;
+    }
+
+    QString focusError;
+    if (!explorer->focusNode(nodeId, &focusError)) {
+        if (errorCode) {
+            *errorCode = QStringLiteral("NODE_NOT_FOUND");
+        }
+        if (errorMessage) {
+            *errorMessage = focusError;
+        }
+        return false;
+    }
+
+    currentSelection = QJsonObject{{QStringLiteral("nodeId"), nodeId}};
+    return true;
+}
+
+bool MainWindow::openResult(const QString &jobId,
+                            QString *errorCode, QString *errorMessage)
+{
+    Q_UNUSED(jobId)
+    if (!ensureStrategyExplorer(errorMessage)) {
+        if (errorCode) {
+            *errorCode = QStringLiteral("RESULT_NOT_READY");
+        }
+        return false;
+    }
+    return true;
+}
+
+void MainWindow::onStrategyNodeSelected(const QString &nodeId)
+{
+    if (!applicationService || nodeId.isEmpty()) {
+        return;
+    }
+    currentSelection = QJsonObject{{QStringLiteral("nodeId"), nodeId}};
+    applicationService->updateFromGui(currentSpotFromUi(),
+                                      currentTreeState(),
+                                      currentSolveState(),
+                                      currentSelection);
 }
