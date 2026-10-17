@@ -1,0 +1,14 @@
+{
+  "jsonrpc": "2.0",
+  "id": 32,
+  "method": "result.getActionEv",
+  "params": {
+    "jobId": "job-1234abcd",
+    "nodeId": "root/a0",
+    "actions": [
+      "check",
+      "bet_33"
+    ],
+    "limit": 100
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "jsonrpc": "2.0",
+  "id": 13,
+  "result": {
+    "valid": true,
+    "normalizedRange": "AA,KK",
+    "comboCount": 6,
+    "warnings": [
+      "6 combination(s) in range were blocked by the board"
+    ],
+    "errors": []
+  }
+}

@@ -5,6 +5,8 @@
 #include <include/solver/BestResponse.h>
 #include "include/solver/PCfrSolver.h"
 #include <QtCore>
+#include <chrono>
+#include <chrono>
 #include <QObject>
 #include <QTranslator>
 
@@ -766,6 +768,11 @@ void PCfrSolver::stop() {
     this->nowstop = true;
 }
 
+void PCfrSolver::setProgressCallback(const SolverProgressCallback &callback)
+{
+    this->progressCallback = callback;
+}
+
 void PCfrSolver::train() {
 
     vector<vector<PrivateCards>> player_privates(this->player_number);
@@ -785,6 +792,11 @@ void PCfrSolver::train() {
 
     uint64_t begintime = timeSinceEpochMillisec();
     uint64_t endtime = timeSinceEpochMillisec();
+    float last_exploitability = 0.0f;
+    auto last_reported = std::chrono::steady_clock::now();
+    if (this->progressCallback) {
+        this->progressCallback(0, this->iteration_number, 0.0);
+    }
 
     for(int i = 0;i < this->iteration_number;i++){
         for(int player_id = 0;player_id < this->player_number;player_id ++) {
@@ -804,6 +816,11 @@ void PCfrSolver::train() {
             long time_ms = endtime - begintime;
             qDebug().noquote() << "-------------------";
             float expliotibility = br.printExploitability(tree->getRoot(), i + 1, tree->getRoot()->getPot(), initial_board_long);
+            last_exploitability = expliotibility;
+            if (this->progressCallback) {
+                this->progressCallback(i + 1, this->iteration_number, expliotibility);
+                last_reported = std::chrono::steady_clock::now();
+            }
             qDebug().noquote() << QObject::tr("time used: ") << float(time_ms) / 1000 << QObject::tr(" second.");
             if(!this->logfile.empty()){
                 json jo;
@@ -820,6 +837,15 @@ void PCfrSolver::train() {
                 break;
             }
             //begintime = timeSinceEpochMillisec();
+        }
+        if (this->progressCallback) {
+            const auto now = std::chrono::steady_clock::now();
+            if (i == this->iteration_number - 1
+                || std::chrono::duration_cast<std::chrono::milliseconds>(
+                       now - last_reported).count() >= 100) {
+                this->progressCallback(i + 1, this->iteration_number, last_exploitability);
+                last_reported = now;
+            }
         }
     }
 

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "State revision conflict error",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jsonrpc", "id", "error"],
+  "properties": {
+    "jsonrpc": { "const": "2.0" },
+    "id": { "type": ["string", "integer", "null"] },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "data"],
+      "properties": {
+        "code": { "const": -32010 },
+        "message": { "const": "State revision conflict" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "expectedRevision", "actualRevision"],
+          "properties": {
+            "code": { "const": "STATE_CONFLICT" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "actualRevision": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

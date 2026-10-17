@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SolveOptions",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "maxIterations": { "type": "integer", "minimum": 1, "maximum": 10000000 },
+    "targetExploitability": { "type": "number", "exclusiveMinimum": 0 },
+    "threads": {
+      "oneOf": [
+        { "const": -1 },
+        { "type": "integer", "minimum": 1, "maximum": 1024 }
+      ]
+    },
+    "algorithm": { "const": "discounted_cfr" },
+    "printInterval": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+    "dumpRounds": { "type": "integer", "minimum": 0, "maximum": 3 }
+  }
+}

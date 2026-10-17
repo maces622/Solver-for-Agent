@@ -1,0 +1,10 @@
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "status": "ok",
+    "protocol": "gto-api/1.0",
+    "pid": 12345,
+    "uptimeSeconds": 12.5
+  }
+}

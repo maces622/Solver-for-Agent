@@ -4,10 +4,24 @@
 #include "include/runtime/qsolverjob.h"
 #include <QFileDialog>
 #include "include/library.h"
+#include "include/GameTree.h"
+#include "include/nodes/GameTreeNode.h"
+#include "src/api/runtime/gui_solver_job_runner.h"
+#include "src/api/runtime/gui_strategy_result_provider.h"
+#include "src/api/services/gto_application_service.h"
+
+#include <QCheckBox>
+#include <QComboBox>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QLineEdit>
+#include <QRegularExpression>
+#include <QTextEdit>
+#include <QTimer>
 
 QSTextEdit* MainWindow::s_textEdit = 0;
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(QWidget *parent, GtoApi::GtoApplicationService *applicationService) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
@@ -21,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
     qSolverJob = new QSolverJob;
     qSolverJob->setContext(this->getLogArea());
     qSolverJob->current_mission = QSolverJob::MissionType::LOADING;
+    qSolverJob->resetCancel();
     qSolverJob->start();
     this->setWindowTitle(tr("TexasSolver"));
 
@@ -63,6 +78,43 @@ MainWindow::MainWindow(QWidget *parent) :
     this->ui->oopRangeTableView->verticalHeader()->setMinimumSectionSize(1);
     this->ui->oopRangeTableView->horizontalHeader()->setMinimumSectionSize(1);
     this->ui->tabWidget->hide();
+
+    this->applicationService = applicationService;
+    if (this->applicationService) {
+        applicationService->setSolverJobRunner(
+            new GtoApi::GuiSolverJobRunner(qSolverJob, this));
+        applicationService->setStrategyResultProvider(
+            new GtoApi::GuiStrategyResultProvider(qSolverJob, this));
+        stateSyncTimer = new QTimer(this);
+        stateSyncTimer->setSingleShot(true);
+        stateSyncTimer->setInterval(50);
+        connect(stateSyncTimer, &QTimer::timeout,
+                this, &MainWindow::syncStateFromUi);
+        connect(this->applicationService, &GtoApi::GtoApplicationService::spotChanged,
+                this, &MainWindow::applySpotFromService);
+
+        const auto schedule = [this]() { scheduleStateSync(); };
+        for (QLineEdit *editor : findChildren<QLineEdit *>()) {
+            connect(editor, &QLineEdit::textChanged, this, schedule);
+        }
+        for (QTextEdit *editor : findChildren<QTextEdit *>()) {
+            connect(editor, &QTextEdit::textChanged, this, schedule);
+        }
+        for (QPlainTextEdit *editor : findChildren<QPlainTextEdit *>()) {
+            connect(editor, &QPlainTextEdit::textChanged, this, schedule);
+        }
+        for (QComboBox *combo : findChildren<QComboBox *>()) {
+            connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+                    this, schedule);
+        }
+        for (QCheckBox *checkBox : findChildren<QCheckBox *>()) {
+            connect(checkBox, &QCheckBox::toggled, this, schedule);
+        }
+        connect(qSolverJob, &QThread::started, this, &MainWindow::scheduleStateSync);
+        connect(qSolverJob, &QThread::finished, this, &MainWindow::scheduleStateSync);
+
+        syncStateFromUi();
+    }
 }
 
 QSTextEdit * MainWindow::get_logwindow(){
@@ -87,6 +139,7 @@ void MainWindow::on_actionjson_triggered(){
     if(fileName.isNull())return;
     this->qSolverJob->savefile = fileName;
     qSolverJob->current_mission = QSolverJob::MissionType::SAVING;
+    qSolverJob->resetCancel();
     qSolverJob->start();
 }
 
@@ -417,6 +470,7 @@ void MainWindow::on_buttomSolve_clicked()
     qSolverJob->print_interval = ui->logIntervalText->text().toInt();
     qSolverJob->thread_number = ui->threadsText->text().toInt();
     qSolverJob->current_mission = QSolverJob::MissionType::SOLVING;
+    qSolverJob->resetCancel();
     qSolverJob->start();
 }
 
@@ -509,6 +563,7 @@ void MainWindow::on_buildTreeButtom_clicked()
 
     qSolverJob->gtbs = make_shared<GameTreeBuildingSettings>(gbs_flop_ip,gbs_turn_ip,gbs_river_ip,gbs_flop_oop,gbs_turn_oop,gbs_river_oop);
     qSolverJob->current_mission = QSolverJob::MissionType::BUILDTREE;
+    qSolverJob->resetCancel();
     qSolverJob->start();
 }
 
@@ -663,4 +718,302 @@ void MainWindow::on_oopRangeText_textChanged()
 
 void MainWindow::onExpanded(const QModelIndex& index){
     ui->parametersTreeView->resizeColumnToContents(0);
+}
+namespace {
+
+QJsonArray sizingArray(const QString &text)
+{
+    QJsonArray values;
+    const QStringList tokens = text.split(QRegularExpression(QStringLiteral("\\s+")),
+                                          Qt::SkipEmptyParts);
+    for (QString token : tokens) {
+        bool ok = false;
+        double value = 0.0;
+        if (token.endsWith(QLatin1Char('x'), Qt::CaseInsensitive)) {
+            token.chop(1);
+            value = token.toDouble(&ok) * 100.0;
+        } else {
+            value = token.toDouble(&ok);
+        }
+        if (ok) {
+            values.append(value);
+        }
+    }
+    return values;
+}
+
+QJsonObject streetSizing(QLineEdit *bet,
+                         QLineEdit *raise,
+                         QLineEdit *donk,
+                         QCheckBox *allin)
+{
+    QJsonObject oop;
+    oop.insert(QStringLiteral("bet"), sizingArray(bet ? bet->text() : QString()));
+    oop.insert(QStringLiteral("raise"), sizingArray(raise ? raise->text() : QString()));
+    if (donk) {
+        oop.insert(QStringLiteral("donk"), sizingArray(donk->text()));
+    }
+    oop.insert(QStringLiteral("allin"), allin ? allin->isChecked() : false);
+
+    QJsonObject ip;
+    ip.insert(QStringLiteral("bet"), QJsonArray());
+    ip.insert(QStringLiteral("raise"), QJsonArray());
+    ip.insert(QStringLiteral("allin"), false);
+
+    QJsonObject street;
+    street.insert(QStringLiteral("oop"), oop);
+    street.insert(QStringLiteral("ip"), ip);
+    return street;
+}
+
+QJsonObject ipSizing(QLineEdit *bet, QLineEdit *raise, QCheckBox *allin)
+{
+    QJsonObject ip;
+    ip.insert(QStringLiteral("bet"), sizingArray(bet ? bet->text() : QString()));
+    ip.insert(QStringLiteral("raise"), sizingArray(raise ? raise->text() : QString()));
+    ip.insert(QStringLiteral("allin"), allin ? allin->isChecked() : false);
+    return ip;
+}
+
+QString sizingText(const QJsonObject &side, const QString &key)
+{
+    QStringList values;
+    const QJsonArray sizes = side.value(key).toArray();
+    for (const QJsonValue &value : sizes) {
+        if (value.isDouble()) {
+            values.append(QString::number(value.toDouble(), 'g', 12));
+        }
+    }
+    return values.join(QLatin1Char(' '));
+}
+
+void applySizingSide(QLineEdit *bet,
+                     QLineEdit *raise,
+                     QLineEdit *donk,
+                     QCheckBox *allin,
+                     const QJsonObject &side)
+{
+    if (bet) {
+        bet->setText(sizingText(side, QStringLiteral("bet")));
+    }
+    if (raise) {
+        raise->setText(sizingText(side, QStringLiteral("raise")));
+    }
+    if (donk) {
+        donk->setText(sizingText(side, QStringLiteral("donk")));
+    }
+    if (allin) {
+        allin->setChecked(side.value(QStringLiteral("allin")).toBool());
+    }
+}
+
+bool isOopPosition(const QString &position)
+{
+    const QString normalized = position.trimmed().toUpper();
+    return normalized == QStringLiteral("OOP")
+           || normalized == QStringLiteral("BB")
+           || normalized == QStringLiteral("SB");
+}
+} // namespace
+
+void MainWindow::scheduleStateSync()
+{
+    if (applyingStateUpdate) {
+        return;
+    }
+    if (stateSyncTimer) {
+        stateSyncTimer->start();
+    }
+}
+
+void MainWindow::applySpotFromService(const GtoApi::SpotSpec &spot)
+{
+    if (!ui) {
+        return;
+    }
+
+    applyingStateUpdate = true;
+    ui->mode_box->setCurrentIndex(spot.mode == QStringLiteral("shortdeck") ? 1 : 0);
+    ui->potText->setText(QString::number(spot.pot, 'g', 12));
+    ui->effectiveStackText->setText(QString::number(spot.effectiveStackBb, 'g', 12));
+    ui->boardText->setPlainText(spot.board.join(QLatin1Char(',')));
+    ui->allinThresholdText->setText(QString::number(spot.allinThreshold, 'g', 12));
+    ui->useIsoCheck->setChecked(spot.useIsomorphism);
+    ui->useHalfFloats_box->setCurrentIndex(spot.useHalfFloats ? 1 : 0);
+
+    currentSpotPositions = spot.positions;
+    oopPosition.clear();
+    ipPosition.clear();
+    for (const QString &position : currentSpotPositions) {
+        if (isOopPosition(position)) {
+            oopPosition = position;
+        } else {
+            ipPosition = position;
+        }
+    }
+    if (oopPosition.isEmpty() && !currentSpotPositions.isEmpty()) {
+        oopPosition = currentSpotPositions.at(0);
+    }
+    if (ipPosition.isEmpty() && currentSpotPositions.size() > 1) {
+        ipPosition = currentSpotPositions.at(1);
+    }
+    if (oopPosition == ipPosition && currentSpotPositions.size() == 2) {
+        oopPosition = currentSpotPositions.at(0);
+        ipPosition = currentSpotPositions.at(1);
+    }
+
+    const QJsonObject ranges = spot.ranges;
+    ui->oopRangeText->setPlainText(ranges.value(oopPosition).toString());
+    ui->ipRangeText->setPlainText(ranges.value(ipPosition).toString());
+
+    const QJsonObject betSizing = spot.betSizing;
+    const QJsonObject flop = betSizing.value(QStringLiteral("flop")).toObject();
+    const QJsonObject turn = betSizing.value(QStringLiteral("turn")).toObject();
+    const QJsonObject river = betSizing.value(QStringLiteral("river")).toObject();
+
+    const QJsonObject flopOop = flop.value(QStringLiteral("oop")).toObject();
+    const QJsonObject flopIp = flop.value(QStringLiteral("ip")).toObject();
+    const QJsonObject turnOop = turn.value(QStringLiteral("oop")).toObject();
+    const QJsonObject turnIp = turn.value(QStringLiteral("ip")).toObject();
+    const QJsonObject riverOop = river.value(QStringLiteral("oop")).toObject();
+    const QJsonObject riverIp = river.value(QStringLiteral("ip")).toObject();
+
+    applySizingSide(ui->flop_oop_bet, ui->flop_oop_raise, nullptr,
+                    ui->flop_oop_allin, flopOop);
+    applySizingSide(ui->flop_ip_bet, ui->flop_ip_raise, nullptr,
+                    ui->flop_ip_allin, flopIp);
+    applySizingSide(ui->turn_oop_bet, ui->turn_oop_raise, ui->turn_oop_donk,
+                    ui->turn_oop_allin, turnOop);
+    applySizingSide(ui->turn_ip_bet, ui->turn_ip_raise, nullptr,
+                    ui->turn_ip_allin, turnIp);
+    applySizingSide(ui->river_oop_bet, ui->river_oop_raise, ui->river_oop_donk,
+                    ui->river_oop_allin, riverOop);
+    applySizingSide(ui->river_ip_bet, ui->river_ip_raise, nullptr,
+                    ui->river_ip_allin, riverIp);
+
+    if (stateSyncTimer) {
+        stateSyncTimer->stop();
+    }
+    applyingStateUpdate = false;
+}
+GtoApi::SpotSpec MainWindow::currentSpotFromUi() const
+{
+    GtoApi::SpotSpec spot;
+    spot.gameType = QStringLiteral("NLHE");
+    spot.mode = ui->mode_box->currentIndex() == 0
+                    ? QStringLiteral("holdem")
+                    : QStringLiteral("shortdeck");
+    if (currentSpotPositions.size() == 2) {
+        spot.positions = currentSpotPositions;
+    } else {
+        spot.positions = QStringList{QStringLiteral("OOP"), QStringLiteral("IP")};
+    }
+    spot.effectiveStackBb = ui->effectiveStackText->text().toDouble();
+    spot.blinds = QList<double>{0.5, 1.0};
+    spot.pot = ui->potText->text().toDouble();
+
+    const QString boardText = ui->boardText->toPlainText().trimmed();
+    spot.board = boardText.isEmpty()
+                     ? QStringList()
+                     : boardText.split(QRegularExpression(QStringLiteral("[,\\s]+")),
+                                       Qt::SkipEmptyParts);
+
+    QJsonObject ranges;
+    for (const QString &position : spot.positions) {
+        const QString text = position == oopPosition
+                                 ? ui->oopRangeText->toPlainText()
+                                 : ui->ipRangeText->toPlainText();
+        ranges.insert(position, text);
+    }
+    spot.ranges = ranges;
+
+    QJsonObject betSizing;
+
+    QJsonObject flop = streetSizing(ui->flop_oop_bet,
+                                    ui->flop_oop_raise,
+                                    nullptr,
+                                    ui->flop_oop_allin);
+    flop.insert(QStringLiteral("ip"),
+                ipSizing(ui->flop_ip_bet, ui->flop_ip_raise, ui->flop_ip_allin));
+    betSizing.insert(QStringLiteral("flop"), flop);
+
+    QJsonObject turn = streetSizing(ui->turn_oop_bet,
+                                    ui->turn_oop_raise,
+                                    ui->turn_oop_donk,
+                                    ui->turn_oop_allin);
+    turn.insert(QStringLiteral("ip"),
+                ipSizing(ui->turn_ip_bet, ui->turn_ip_raise, ui->turn_ip_allin));
+    betSizing.insert(QStringLiteral("turn"), turn);
+
+    QJsonObject river = streetSizing(ui->river_oop_bet,
+                                     ui->river_oop_raise,
+                                     ui->river_oop_donk,
+                                     ui->river_oop_allin);
+    river.insert(QStringLiteral("ip"),
+                 ipSizing(ui->river_ip_bet, ui->river_ip_raise, ui->river_ip_allin));
+    betSizing.insert(QStringLiteral("river"), river);
+
+    spot.betSizing = betSizing;
+    spot.allinThreshold = ui->allinThresholdText->text().toDouble();
+    spot.useIsomorphism = ui->useIsoCheck->isChecked();
+    spot.useHalfFloats = ui->useHalfFloats_box->currentIndex() > 0;
+    return spot;
+}
+
+QJsonValue MainWindow::currentTreeState() const
+{
+    if (!qSolverJob) {
+        return QJsonValue::Null;
+    }
+    if (qSolverJob->isRunning()) {
+        if (applicationService) {
+            const QJsonValue existingTree = applicationService->getState().tree;
+            if (!existingTree.isNull()) {
+                return existingTree;
+            }
+        }
+        return QJsonValue::Null;
+    }
+    PokerSolver *solver = qSolverJob->get_solver();
+    if (!solver || !solver->get_game_tree()) {
+        return QJsonValue::Null;
+    }
+
+    const auto gameTree = solver->get_game_tree();
+    const auto root = gameTree ? gameTree->getRoot() : nullptr;
+
+    QJsonObject tree;
+    tree.insert(QStringLiteral("rootNodeId"), QStringLiteral("root"));
+    tree.insert(QStringLiteral("nodeCount"), root ? root->subtree_size : 0);
+    return tree;
+}
+
+QJsonValue MainWindow::currentSolveState() const
+{
+    if (applicationService) {
+        const QJsonValue existingSolve = applicationService->getState().solve;
+        if (!existingSolve.isNull()) {
+            return existingSolve;
+        }
+    }
+    if (!qSolverJob || !qSolverJob->isRunning()
+        || qSolverJob->current_mission != QSolverJob::MissionType::SOLVING) {
+        return QJsonValue::Null;
+    }
+
+    QJsonObject solve;
+    solve.insert(QStringLiteral("state"), QStringLiteral("running"));
+    solve.insert(QStringLiteral("progress"), 0.0);
+    return solve;
+}
+
+void MainWindow::syncStateFromUi()
+{
+    if (!applicationService || applyingStateUpdate) {
+        return;
+    }
+    applicationService->updateFromGui(currentSpotFromUi(),
+                                      currentTreeState(),
+                                      currentSolveState(),
+                                      QJsonValue::Null);
 }

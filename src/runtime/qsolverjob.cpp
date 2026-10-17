@@ -1,4 +1,4 @@
-﻿#include "include/runtime/qsolverjob.h"
+#include "include/runtime/qsolverjob.h"
 
 
 using namespace std;
@@ -32,11 +32,23 @@ void QSolverJob::run()
         }else{
             throw runtime_error("unsupported mission type");
         }
+        if (m_cancelRequested.load()) {
+            emit jobCancelled();
+        } else {
+            emit jobSucceeded();
+        }
     }
     catch (const runtime_error& error)
     {
         qDebug().noquote() << tr("Encountering error:");//.toStdString() << endl;
         qDebug().noquote() << error.what() << "\n";
+        emit jobFailed(QString::fromLocal8Bit(error.what()));
+    }
+    catch (const std::exception& error)
+    {
+        qDebug().noquote() << tr("Encountering error:");
+        qDebug().noquote() << error.what() << "\n";
+        emit jobFailed(QString::fromLocal8Bit(error.what()));
     }
 }
 
@@ -87,11 +99,16 @@ void QSolverJob::saving(){
 
 void QSolverJob::stop(){
     qDebug().noquote() << tr("Trying to stop solver.");
+    m_cancelRequested.store(true);
     if(this->mode == Mode::HOLDEM){
         this->ps_holdem.stop();
     }else if(this->mode == Mode::SHORTDECK){
         this->ps_shortdeck.stop();
     }
+}
+
+void QSolverJob::resetCancel(){
+    m_cancelRequested.store(false);
 }
 
 void QSolverJob::solving(){
@@ -112,7 +129,10 @@ void QSolverJob::solving(){
             this->accuracy,
             this->use_isomorphism,
             this->use_halffloats,
-            this->thread_number
+            this->thread_number,
+            [this](int iteration, int maxIterations, double exploitability) {
+                emit jobProgress(iteration, maxIterations, exploitability);
+            }
         );
     }else if(this->mode == Mode::SHORTDECK){
         this->ps_shortdeck.train(
@@ -127,7 +147,10 @@ void QSolverJob::solving(){
             this->accuracy,
             this->use_isomorphism,
             this->use_halffloats,
-            this->thread_number
+            this->thread_number,
+            [this](int iteration, int maxIterations, double exploitability) {
+                emit jobProgress(iteration, maxIterations, exploitability);
+            }
         );
     }
     qDebug().noquote() << tr("Solving done.");//.toStdString() << std::endl;

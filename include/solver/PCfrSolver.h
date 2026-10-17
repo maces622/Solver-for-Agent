@@ -95,6 +95,7 @@ public:
     ~PCfrSolver();
     void train() override;
     void stop() override;
+    void setProgressCallback(const SolverProgressCallback &callback);
     json dumps(bool with_status,int depth) override;
     vector<vector<vector<float>>> get_strategy(shared_ptr<ActionNode> node,vector<Card> chance_cards) override;
     vector<vector<vector<float>>> get_evs(shared_ptr<ActionNode> node,vector<Card> chance_cards) override;
@@ -129,6 +130,7 @@ private:
     bool use_isomorphism;
     int use_halffloats;
     bool nowstop = false;
+    SolverProgressCallback progressCallback;
 
     const vector<PrivateCards>& playerHands(int player);
     vector<vector<float>> getReachProbs();

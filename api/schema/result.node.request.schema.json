@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Node result request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jobId", "nodeId"],
+  "properties": {
+    "jobId": { "type": "string", "minLength": 1 },
+    "nodeId": { "type": "string", "minLength": 1 },
+    "actions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "system.hello response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jsonrpc", "id", "result"],
+  "properties": {
+    "jsonrpc": { "const": "2.0" },
+    "id": { "type": ["string", "integer", "null"] },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "sessionId", "server", "capabilities"],
+      "properties": {
+        "protocol": { "const": "gto-api/1.0" },
+        "sessionId": { "type": "string", "minLength": 1 },
+        "server": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version", "commit"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "version": { "type": "string", "minLength": 1 },
+            "commit": { "type": "string" }
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "jsonrpc": "2.0",
+  "id": 22,
+  "method": "solve.cancel",
+  "params": {
+    "jobId": "job-1234abcd"
+  }
+}

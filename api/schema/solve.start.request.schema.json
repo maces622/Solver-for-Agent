@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "solve.start request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jsonrpc", "id", "method", "params"],
+  "properties": {
+    "jsonrpc": { "const": "2.0" },
+    "id": { "type": ["string", "integer"] },
+    "method": { "const": "solve.start" },
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expectedRevision", "options"],
+      "properties": {
+        "expectedRevision": { "type": "integer", "minimum": 0 },
+        "options": { "$ref": "solve_options.schema.json" }
+      }
+    }
+  }
+}

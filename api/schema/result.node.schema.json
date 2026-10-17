@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NodeResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["nodeId", "actions", "comboCount", "exploitability", "artifactRef", "artifactId"],
+  "properties": {
+    "nodeId": { "type": "string", "minLength": 1 },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["action", "frequency", "ev"],
+        "properties": {
+          "action": { "type": "string", "minLength": 1 },
+          "frequency": { "type": "number", "minimum": 0, "maximum": 1 },
+          "ev": { "type": "number" }
+        }
+      }
+    },
+    "comboCount": { "type": "integer", "minimum": 0 },
+    "exploitability": { "type": "number", "minimum": 0 },
+    "artifactRef": { "type": "string", "minLength": 1 },
+    "artifactId": { "type": "string", "minLength": 1 }
+  }
+}

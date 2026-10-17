@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "event.solve_completed",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jsonrpc", "method", "params"],
+  "properties": {
+    "jsonrpc": { "const": "2.0" },
+    "method": { "const": "event.solve_completed" },
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "jobId", "state", "progress", "elapsedMs"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 1 },
+        "jobId": { "type": "string", "minLength": 1 },
+        "state": { "const": "completed" },
+        "progress": { "const": 1.0 },
+        "elapsedMs": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

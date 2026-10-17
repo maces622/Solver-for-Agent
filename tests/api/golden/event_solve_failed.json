@@ -1,0 +1,13 @@
+{
+  "jsonrpc": "2.0",
+  "method": "event.solve_failed",
+  "params": {
+    "sequence": 8,
+    "jobId": "job-1234abcd",
+    "state": "failed",
+    "error": {
+      "code": "SOLVER_ERROR",
+      "message": "Solver failed"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "jsonrpc": "2.0",
+  "id": 31,
+  "result": {
+    "nodeId": "root/a0",
+    "actions": [
+      {
+        "action": "check",
+        "frequency": 0.62,
+        "ev": 2.31
+      },
+      {
+        "action": "bet_33",
+        "frequency": 0.38,
+        "ev": 2.28
+      }
+    ],
+    "comboCount": 10,
+    "exploitability": 0.2,
+    "artifactRef": "artifact://job-1234abcd/artifact-test",
+    "artifactId": "artifact-test"
+  }
+}

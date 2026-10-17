@@ -7,6 +7,9 @@
 
 
 #include <include/GameTree.h>
+#include <functional>
+
+using SolverProgressCallback = std::function<void(int iteration, int maxIterations, double exploitability)>;
 
 class Solver {
 public:

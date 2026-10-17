@@ -4,6 +4,11 @@
 #include <QInputDialog>
 #include <string>
 #include <QSettings>
+#include <QCommandLineParser>
+#include <QCommandLineOption>
+#include <QDebug>
+#include "src/api/api_server.h"
+#include "src/api/services/gto_application_service.h"
 
 
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
@@ -42,6 +47,34 @@ int main(int argc, char *argv[])
     qInstallMessageHandler(myMessageOutput);
     QApplication a(argc, argv);
 
+    QCommandLineParser parser;
+    parser.setApplicationDescription(QStringLiteral("TexasSolver GUI and local GTO API"));
+    parser.addHelpOption();
+    const QCommandLineOption apiEnabledOption(
+        QStringLiteral("api-enabled"),
+        QStringLiteral("Enable the local GTO WebSocket JSON-RPC API."));
+    const QCommandLineOption apiPortOption(
+        QStringLiteral("api-port"),
+        QStringLiteral("Port for the local GTO API; 0 selects a random port."),
+        QStringLiteral("port"),
+        QStringLiteral("0"));
+    const QCommandLineOption apiDiscoveryFileOption(
+        QStringLiteral("api-discovery-file"),
+        QStringLiteral("Path of the API discovery file."),
+        QStringLiteral("path"));
+    parser.addOption(apiEnabledOption);
+    parser.addOption(apiPortOption);
+    parser.addOption(apiDiscoveryFileOption);
+    parser.process(a);
+
+    bool portOk = false;
+    const uint requestedPort = parser.value(apiPortOption).toUInt(&portOk);
+    if (!portOk || requestedPort > 65535) {
+        qCritical().noquote() << QStringLiteral("Invalid --api-port value: %1")
+                                     .arg(parser.value(apiPortOption));
+        return 1;
+    }
+
     QSettings setting("TexasSolver", "Setting");
     setting.beginGroup("solver");
     QString language_str = setting.value("language").toString();
@@ -75,8 +108,22 @@ int main(int argc, char *argv[])
         setting.setValue("dump_round",2);
     }
 
-    MainWindow w;
+    GtoApi::GtoApplicationService applicationService;
+    MainWindow w(nullptr, &applicationService);
     w.show();
+
+    GtoApi::LocalApiServer apiServer(&applicationService);
+    if (parser.isSet(apiEnabledOption)) {
+        GtoApi::ApiServerConfig config;
+        config.port = static_cast<quint16>(requestedPort);
+        config.discoveryFilePath = parser.value(apiDiscoveryFileOption);
+        QString errorMessage;
+        if (!apiServer.start(config, &errorMessage)) {
+            qCritical().noquote() << QStringLiteral("Failed to start GTO API: %1")
+                                         .arg(errorMessage);
+            return 1;
+        }
+    }
 
     return a.exec();
 }

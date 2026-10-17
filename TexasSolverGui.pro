@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui network websockets
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -16,6 +16,7 @@ TEMPLATE = app
 # depend on your compiler). Please consult the documentation of the
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
+win32: QMAKE_CXXFLAGS += /utf-8
 
 # You can also make your code fail to compile if you use deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -60,6 +61,21 @@ QMAKE_CXXFLAGS_RELEASE *= -O2
 QMAKE_LFLAGS += -v
 
 SOURCES += \
+    src/api/protocol.cpp \
+    src/api/api_server.cpp \
+    src/api/dto/spot_spec.cpp \
+    src/api/dto/state_snapshot.cpp \
+    src/api/dto/solve_options.cpp \
+    src/api/dto/job_status.cpp \
+    src/api/dto/artifact_ref.cpp \
+    src/api/services/solver_job_manager.cpp \
+    src/api/services/result_query_service.cpp \
+    src/api/events/event_bus.cpp \
+    src/api/services/state_store.cpp \
+    src/api/services/gto_application_service.cpp \
+    src/api/services/spot_validator.cpp \
+    src/api/runtime/gui_solver_job_runner.cpp \
+    src/api/runtime/gui_strategy_result_provider.cpp \
     main.cpp \
     mainwindow.cpp \
     src/Deck.cpp \
@@ -124,6 +140,24 @@ SOURCES += \
     settingeditor.cpp
 
 HEADERS += \
+    src/api/protocol.h \
+    src/api/api_server.h \
+    src/api/dto/spot_spec.h \
+    src/api/dto/state_snapshot.h \
+    src/api/dto/solve_options.h \
+    src/api/dto/job_status.h \
+    src/api/dto/artifact_ref.h \
+    src/api/services/solver_job_runner.h \
+    src/api/services/solver_job_manager.h \
+    src/api/services/result_query_service.h \
+    src/api/services/strategy_result_provider.h \
+    src/api/services/artifact_store.h \
+    src/api/events/event_bus.h \
+    src/api/services/state_store.h \
+    src/api/services/gto_application_service.h \
+    src/api/services/spot_validator.h \
+    src/api/runtime/gui_solver_job_runner.h \
+    src/api/runtime/gui_strategy_result_provider.h \
     include/tools/half-1-12-0.h \
     include/trainable/DiscountedCfrTrainableHF.h \
     include/trainable/DiscountedCfrTrainableSF.h \

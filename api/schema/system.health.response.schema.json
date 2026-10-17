@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "system.health response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jsonrpc", "id", "result"],
+  "properties": {
+    "jsonrpc": { "const": "2.0" },
+    "id": { "type": ["string", "integer", "null"] },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "protocol", "pid", "uptimeSeconds"],
+      "properties": {
+        "status": { "const": "ok" },
+        "protocol": { "const": "gto-api/1.0" },
+        "pid": { "type": "integer", "minimum": 1 },
+        "uptimeSeconds": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

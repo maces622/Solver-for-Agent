@@ -1,0 +1,14 @@
+{
+  "jsonrpc": "2.0",
+  "id": 13,
+  "method": "range.validate",
+  "params": {
+    "range": "AA,KK",
+    "board": [
+      "Ah",
+      "Kd",
+      "7c"
+    ],
+    "mode": "holdem"
+  }
+}

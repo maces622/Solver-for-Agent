@@ -1,0 +1,13 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "system.hello",
+  "params": {
+    "protocol": "gto-api/1.0",
+    "token": "test-token",
+    "client": {
+      "name": "contract-test",
+      "version": "0.1.0"
+    }
+  }
+}

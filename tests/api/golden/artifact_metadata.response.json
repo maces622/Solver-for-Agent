@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 34,
+  "result": {
+    "artifactId": "artifact-test",
+    "uri": "artifact://job-1234abcd/artifact-test",
+    "mimeType": "application/json",
+    "sizeBytes": 1024,
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "createdAt": "2026-01-01T12:00:25Z"
+  }
+}

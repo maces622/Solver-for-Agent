@@ -1,0 +1,9 @@
+{
+  "jsonrpc": "2.0",
+  "method": "event.solve_cancelled",
+  "params": {
+    "sequence": 9,
+    "jobId": "job-1234abcd",
+    "state": "cancelled"
+  }
+}

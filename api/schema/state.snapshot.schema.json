@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StateSnapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["revision", "sessionId", "screen", "spot", "tree", "solve", "selection"],
+  "properties": {
+    "revision": { "type": "integer", "minimum": 0 },
+    "sessionId": { "type": "string", "minLength": 1 },
+    "screen": { "type": "string", "minLength": 1 },
+    "spot": { "$ref": "spot.schema.json" },
+    "tree": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rootNodeId", "nodeCount"],
+          "properties": {
+            "rootNodeId": { "type": "string", "minLength": 1 },
+            "nodeCount": { "type": "integer", "minimum": 0 }
+          }
+        }
+      ]
+    },
+    "solve": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "progress"],
+          "properties": {
+            "jobId": { "type": ["string", "null"] },
+            "state": {
+              "type": "string",
+              "enum": ["queued", "running", "completed", "failed", "cancelling", "cancelled"]
+            },
+            "progress": { "type": "number", "minimum": 0, "maximum": 1 },
+            "iterations": { "type": "integer", "minimum": 0 },
+            "exploitability": { "type": "number", "minimum": 0 },
+            "startedAt": { "type": "string" },
+            "finishedAt": { "type": "string" },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": { "type": "string" },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "selection": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["nodeId"],
+          "properties": {
+            "nodeId": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    }
+  }
+}

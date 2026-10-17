@@ -1,0 +1,9 @@
+{
+  "jsonrpc": "2.0",
+  "method": "event.state_changed",
+  "params": {
+    "sequence": 1,
+    "revision": 1,
+    "changedPaths": ["spot.pot"]
+  }
+}

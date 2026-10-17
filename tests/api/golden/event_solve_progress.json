@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "method": "event.solve_progress",
+  "params": {
+    "sequence": 6,
+    "jobId": "job-1234abcd",
+    "progress": 0.37,
+    "iterations": 74,
+    "exploitability": 1.24,
+    "elapsedMs": 18000
+  }
+}

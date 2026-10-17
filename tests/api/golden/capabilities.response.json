@@ -1,0 +1,94 @@
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "protocol": "gto-api/1.0",
+    "capabilities": [
+      "state.read",
+      "spot.write",
+      "solve.control",
+      "result.read",
+      "artifact.read"
+    ],
+    "methods": [
+      {
+        "name": "system.hello",
+        "capability": null,
+        "async": false
+      },
+      {
+        "name": "system.getCapabilities",
+        "capability": null,
+        "async": false
+      },
+      {
+        "name": "system.health",
+        "capability": null,
+        "async": false
+      },
+      {
+        "name": "state.get",
+        "capability": "state.read",
+        "async": false
+      },
+      {
+        "name": "spot.validate",
+        "capability": "spot.write",
+        "async": false
+      },
+      {
+        "name": "range.validate",
+        "capability": "spot.write",
+        "async": false
+      },
+      {
+        "name": "spot.set",
+        "capability": "spot.write",
+        "async": false
+      },
+      {
+        "name": "solve.start",
+        "capability": "solve.control",
+        "async": true
+      },
+      {
+        "name": "solve.getStatus",
+        "capability": "solve.control",
+        "async": false
+      },
+      {
+        "name": "solve.cancel",
+        "capability": "solve.control",
+        "async": false
+      },
+      {
+        "name": "solve.getSummary",
+        "capability": "result.read",
+        "async": false
+      },
+      {
+        "name": "result.getNodeStrategy",
+        "capability": "result.read",
+        "async": false
+      },
+      {
+        "name": "result.getActionEv",
+        "capability": "result.read",
+        "async": false
+      },
+      {
+        "name": "result.getExploitability",
+        "capability": "result.read",
+        "async": false
+      },
+      {
+        "name": "artifact.getMetadata",
+        "capability": "artifact.read",
+        "async": false
+      }
+    ],
+    "limits": {
+      "maxMessageBytes": 1048576
+    }
+  }
+}

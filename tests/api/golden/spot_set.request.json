@@ -1,0 +1,104 @@
+{
+  "jsonrpc": "2.0",
+  "id": 11,
+  "method": "spot.set",
+  "params": {
+    "expectedRevision": 1,
+    "spot": {
+      "gameType": "NLHE",
+      "mode": "holdem",
+      "positions": [
+        "OOP",
+        "IP"
+      ],
+      "effectiveStackBb": 100,
+      "blinds": [
+        0.5,
+        1.0
+      ],
+      "pot": 50,
+      "board": [
+        "Ah",
+        "Kd",
+        "7c"
+      ],
+      "ranges": {
+        "OOP": "AA,KK",
+        "IP": "QQ,JJ"
+      },
+      "betSizing": {
+        "flop": {
+          "oop": {
+            "bet": [
+              33,
+              75
+            ],
+            "raise": [
+              60
+            ],
+            "allin": false
+          },
+          "ip": {
+            "bet": [
+              50
+            ],
+            "raise": [
+              60,
+              100
+            ],
+            "allin": false
+          }
+        },
+        "turn": {
+          "oop": {
+            "bet": [
+              50
+            ],
+            "raise": [
+              60
+            ],
+            "donk": [
+              50
+            ],
+            "allin": false
+          },
+          "ip": {
+            "bet": [
+              50
+            ],
+            "raise": [
+              60
+            ],
+            "allin": false
+          }
+        },
+        "river": {
+          "oop": {
+            "bet": [
+              50
+            ],
+            "raise": [
+              60
+            ],
+            "donk": [
+              50
+            ],
+            "allin": false
+          },
+          "ip": {
+            "bet": [
+              50
+            ],
+            "raise": [
+              60
+            ],
+            "allin": false
+          }
+        }
+      },
+      "allinThreshold": 0.67,
+      "useIsomorphism": true,
+      "useHalfFloats": false
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "jsonrpc": "2.0",
+  "method": "event.solve_queued",
+  "params": {
+    "sequence": 5,
+    "jobId": "job-1234abcd",
+    "state": "queued"
+  }
+}

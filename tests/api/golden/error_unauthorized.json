@@ -1,0 +1,11 @@
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "error": {
+    "code": -32001,
+    "message": "Call system.hello before other methods",
+    "data": {
+      "code": "UNAUTHORIZED"
+    }
+  }
+}

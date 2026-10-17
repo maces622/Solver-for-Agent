@@ -1,0 +1,20 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "protocol": "gto-api/1.0",
+    "sessionId": "session-test",
+    "server": {
+      "name": "TexasSolverGui",
+      "version": "0.1.0",
+      "commit": "test"
+    },
+    "capabilities": [
+      "state.read",
+      "spot.write",
+      "solve.control",
+      "result.read",
+      "artifact.read"
+    ]
+  }
+}

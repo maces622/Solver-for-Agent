@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 22,
+  "result": {
+    "jobId": "job-1234abcd",
+    "state": "cancelling",
+    "progress": 0.37,
+    "iterations": 74,
+    "exploitability": 1.24,
+    "elapsedMs": 18000
+  }
+}

@@ -1,4 +1,4 @@
-﻿#ifndef QSOLVERJOB_H
+#ifndef QSOLVERJOB_H
 #define QSOLVERJOB_H
 #include "include/tools/qdebugstream.h"
 #include "stdio.h"
@@ -9,6 +9,7 @@
 #include "qstextedit.h"
 #include <QDebug>
 #include <QSettings>
+#include <atomic>
 
 class QSolverJob : public QThread
 {
@@ -56,10 +57,20 @@ public:
     void loading();
     void solving();
     void stop();
+    void resetCancel();
     void saving();
     void build_tree();
     long long estimate_tree_memory(QString range1,QString range2,QString board);
     void setContext(QSTextEdit * textEdit);
     QString savefile;
+
+signals:
+    void jobProgress(int iteration, int maxIterations, double exploitability);
+    void jobSucceeded();
+    void jobFailed(const QString &message);
+    void jobCancelled();
+
+private:
+    std::atomic_bool m_cancelRequested{false};
 };
 #endif // QSOLVERJOB_H

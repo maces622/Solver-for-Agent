@@ -1,0 +1,16 @@
+{
+  "jsonrpc": "2.0",
+  "id": 20,
+  "method": "solve.start",
+  "params": {
+    "expectedRevision": 1,
+    "options": {
+      "maxIterations": 200,
+      "targetExploitability": 0.5,
+      "threads": 8,
+      "algorithm": "discounted_cfr",
+      "printInterval": 10,
+      "dumpRounds": 2
+    }
+  }
+}

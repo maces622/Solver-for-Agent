@@ -1,0 +1,11 @@
+{
+  "jsonrpc": "2.0",
+  "method": "event.solve_completed",
+  "params": {
+    "sequence": 7,
+    "jobId": "job-1234abcd",
+    "state": "completed",
+    "progress": 1.0,
+    "elapsedMs": 24000
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "jsonrpc": "2.0",
+  "id": 12,
+  "error": {
+    "code": -32010,
+    "message": "State revision conflict",
+    "data": {
+      "code": "STATE_CONFLICT",
+      "expectedRevision": 1,
+      "actualRevision": 2
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "jsonrpc": "2.0",
+  "id": 21,
+  "result": {
+    "jobId": "job-1234abcd",
+    "state": "running",
+    "progress": 0.37,
+    "iterations": 74,
+    "exploitability": 1.24,
+    "startedAt": "2026-01-01T12:00:00Z",
+    "elapsedMs": 18000
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "jsonrpc": "2.0",
+  "id": 30,
+  "result": {
+    "jobId": "job-1234abcd",
+    "state": "completed",
+    "progress": 1.0,
+    "iterations": 200,
+    "exploitability": 0.2,
+    "startedAt": "2026-01-01T12:00:00Z",
+    "finishedAt": "2026-01-01T12:00:24Z",
+    "elapsedMs": 24000,
+    "tree": {
+      "rootNodeId": "root",
+      "nodeCount": 12345
+    }
+  }
+}

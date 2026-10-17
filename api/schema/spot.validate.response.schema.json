@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "spot.validate response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jsonrpc", "id", "result"],
+  "properties": {
+    "jsonrpc": { "const": "2.0" },
+    "id": { "type": ["string", "integer", "null"] },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["valid", "normalizedSpot", "warnings", "errors"],
+      "properties": {
+        "valid": { "type": "boolean" },
+        "normalizedSpot": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "spot.schema.json" }
+          ]
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "errors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/validationIssue" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "validationIssue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "code", "message"],
+      "properties": {
+        "path": { "type": "string" },
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

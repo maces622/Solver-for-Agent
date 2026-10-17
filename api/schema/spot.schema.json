@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SpotSpec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "gameType",
+    "mode",
+    "positions",
+    "effectiveStackBb",
+    "blinds",
+    "pot",
+    "board",
+    "ranges",
+    "betSizing",
+    "allinThreshold",
+    "useIsomorphism",
+    "useHalfFloats"
+  ],
+  "properties": {
+    "gameType": { "type": "string", "minLength": 1 },
+    "mode": { "type": "string", "enum": ["holdem", "shortdeck"] },
+    "positions": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "effectiveStackBb": { "type": "number", "minimum": 0 },
+    "blinds": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "number", "minimum": 0 }
+    },
+    "pot": { "type": "number", "minimum": 0 },
+    "board": {
+      "type": "array",
+      "maxItems": 5,
+      "items": { "type": "string", "pattern": "^[2-9TJQKA][cdhs]$" }
+    },
+    "ranges": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "betSizing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["flop", "turn", "river"],
+      "properties": {
+        "flop": { "$ref": "#/$defs/street" },
+        "turn": { "$ref": "#/$defs/street" },
+        "river": { "$ref": "#/$defs/street" }
+      }
+    },
+    "allinThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+    "useIsomorphism": { "type": "boolean" },
+    "useHalfFloats": { "type": "boolean" }
+  },
+  "$defs": {
+    "sizing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bet", "raise", "allin"],
+      "properties": {
+        "bet": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+        "raise": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+        "donk": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+        "allin": { "type": "boolean" }
+      }
+    },
+    "street": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["oop", "ip"],
+      "properties": {
+        "oop": { "$ref": "#/$defs/sizing" },
+        "ip": { "$ref": "#/$defs/sizing" }
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "range.validate request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jsonrpc", "id", "method", "params"],
+  "properties": {
+    "jsonrpc": { "const": "2.0" },
+    "id": { "type": ["string", "integer"] },
+    "method": { "const": "range.validate" },
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["range"],
+      "properties": {
+        "range": { "type": "string", "minLength": 1, "maxLength": 16384 },
+        "board": {
+          "type": "array",
+          "maxItems": 5,
+          "items": { "type": "string", "pattern": "^[2-9TJQKA][cdhs]$" }
+        },
+        "mode": { "type": "string", "enum": ["holdem", "shortdeck"] }
+      }
+    }
+  }
+}

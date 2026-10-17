@@ -89,7 +89,7 @@ long long PokerSolver::estimate_tree_memory(QString range1,QString range2,QStrin
 }
 
 void PokerSolver::train(string p1_range, string p2_range, string boards, string log_file, int iteration_number,
-                        int print_interval, string algorithm,int warmup,float accuracy,bool use_isomorphism, int use_halffloats, int threads) {
+                        int print_interval, string algorithm,int warmup,float accuracy,bool use_isomorphism, int use_halffloats, int threads, SolverProgressCallback progressCallback) {
     string player1RangeStr = p1_range;
     string player2RangeStr = p2_range;
 
@@ -107,7 +107,7 @@ void PokerSolver::train(string p1_range, string p2_range, string boards, string 
     this->player2Range = noDuplicateRange(range2,initial_board_long);
 
     string logfile_name = log_file;
-    this->solver = make_shared<PCfrSolver>(
+    auto cfrSolver = make_shared<PCfrSolver>(
             game_tree
             , range1
             , range2
@@ -126,6 +126,8 @@ void PokerSolver::train(string p1_range, string p2_range, string boards, string 
             , use_halffloats
             , threads
     );
+    cfrSolver->setProgressCallback(progressCallback);
+    this->solver = cfrSolver;
     this->solver->train();
 }
 
