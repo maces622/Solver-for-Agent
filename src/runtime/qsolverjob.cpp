@@ -27,6 +27,11 @@ void QSolverJob::run()
             this->loading();
         }else if(this->current_mission == MissionType::BUILDTREE){
             this->build_tree();
+        }else if(this->current_mission == MissionType::BUILDTREE_AND_SOLVE){
+            this->build_tree();
+            if (!m_cancelRequested.load()) {
+                this->solving();
+            }
         }else if(this->current_mission == MissionType::SAVING){
             this->saving();
         }else{

@@ -2,6 +2,10 @@
 
 #include "include/GameTree.h"
 #include "include/runtime/qsolverjob.h"
+#include "include/tools/GameTreeBuildingSettings.h"
+
+#include <QJsonArray>
+#include <QJsonObject>
 
 namespace GtoApi {
 
@@ -13,6 +17,55 @@ bool isOopPosition(const QString &position)
     return normalized == QStringLiteral("OOP")
            || normalized == QStringLiteral("BB")
            || normalized == QStringLiteral("SB");
+}
+
+std::vector<float> sizesFromJson(const QJsonObject &side, const QString &key)
+{
+    std::vector<float> result;
+    for (const QJsonValue &value : side.value(key).toArray()) {
+        if (value.isDouble()) {
+            result.push_back(static_cast<float>(value.toDouble()));
+        }
+    }
+    return result;
+}
+
+StreetSetting streetSetting(const QJsonObject &street,
+                            const QString &sideKey,
+                            bool includeDonk)
+{
+    const QJsonObject side = street.value(sideKey).toObject();
+    return StreetSetting(sizesFromJson(side, QStringLiteral("bet")),
+                         sizesFromJson(side, QStringLiteral("raise")),
+                         includeDonk ? sizesFromJson(side, QStringLiteral("donk"))
+                                     : std::vector<float>(),
+                         side.value(QStringLiteral("allin")).toBool());
+}
+
+void configureTreeBuilding(QSolverJob *job, const SpotSpec &spot)
+{
+    const int boardCards = spot.board.size();
+    job->current_round = boardCards >= 5 ? 3 : (boardCards == 4 ? 2 : 1);
+    job->raise_limit = 3;
+    job->ip_commit = static_cast<float>(spot.pot / 2.0);
+    job->oop_commit = static_cast<float>(spot.pot / 2.0);
+    job->stack = static_cast<float>(spot.effectiveStackBb) + job->ip_commit;
+    if (spot.blinds.size() >= 2) {
+        job->small_blind = static_cast<float>(spot.blinds.at(0));
+        job->big_blind = static_cast<float>(spot.blinds.at(1));
+    }
+
+    const QJsonObject sizing = spot.betSizing;
+    const QJsonObject flop = sizing.value(QStringLiteral("flop")).toObject();
+    const QJsonObject turn = sizing.value(QStringLiteral("turn")).toObject();
+    const QJsonObject river = sizing.value(QStringLiteral("river")).toObject();
+    job->gtbs = make_shared<GameTreeBuildingSettings>(
+        streetSetting(flop, QStringLiteral("ip"), false),
+        streetSetting(turn, QStringLiteral("ip"), false),
+        streetSetting(river, QStringLiteral("ip"), false),
+        streetSetting(flop, QStringLiteral("oop"), false),
+        streetSetting(turn, QStringLiteral("oop"), true),
+        streetSetting(river, QStringLiteral("oop"), true));
 }
 
 } // namespace
@@ -52,9 +105,9 @@ bool GuiSolverJobRunner::start(const SpotSpec &spot,
     }
 
     PokerSolver *solver = m_solverJob->get_solver();
-    if (!solver || !solver->get_game_tree()) {
+    if (!solver) {
         if (errorMessage) {
-            *errorMessage = QStringLiteral("Build the game tree before starting solve");
+            *errorMessage = QStringLiteral("Solver is unavailable");
         }
         return false;
     }
@@ -94,7 +147,11 @@ bool GuiSolverJobRunner::start(const SpotSpec &spot,
     m_solverJob->use_halffloats = spot.useHalfFloats ? 1 : 0;
     m_solverJob->allin_threshold = static_cast<float>(spot.allinThreshold);
     m_solverJob->dump_rounds = options.dumpRounds;
-    m_solverJob->current_mission = QSolverJob::MissionType::SOLVING;
+    configureTreeBuilding(m_solverJob, spot);
+    // API solve.start owns the complete "prepare current spot, then solve"
+    // operation. The GUI's separate Build Tree button is a UI convenience,
+    // not a precondition of the public API.
+    m_solverJob->current_mission = QSolverJob::MissionType::BUILDTREE_AND_SOLVE;
     m_solverJob->resetCancel();
     m_solverJob->start();
     return true;

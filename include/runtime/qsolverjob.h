@@ -27,6 +27,7 @@ public:
         LOADING,
         SOLVING,
         BUILDTREE,
+        BUILDTREE_AND_SOLVE,
         SAVING
     };
     MissionType current_mission = MissionType::LOADING;
