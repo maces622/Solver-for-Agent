@@ -5,6 +5,7 @@
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QProcess>
 #include <QProcessEnvironment>
 #include <QTextBrowser>
 #include <QTimer>
@@ -33,13 +34,21 @@ public:
     void start()
     {
         AcpClientConfig config;
-        config.executable = qEnvironmentVariable("GTO_TEST_PYTHON");
-        config.arguments = QStringList{
-            qEnvironmentVariable("GTO_ACP_FAKE_SERVER"),
-        };
-        config.workingDirectory = QCoreApplication::applicationDirPath();
-        config.environment.insert(QStringLiteral("FAKE_ACP_PERMISSION"), QStringLiteral("0"));
-        if (config.executable.isEmpty() || config.arguments.first().isEmpty()) {
+        const QString realCommand = qEnvironmentVariable("GTO_ACP_COMMAND");
+        if (!realCommand.isEmpty()) {
+            config.executable = realCommand;
+            config.arguments = QProcess::splitCommand(qEnvironmentVariable("GTO_ACP_ARGS"));
+            config.workingDirectory = qEnvironmentVariable("GTO_ACP_CWD");
+        } else {
+            config.executable = qEnvironmentVariable("GTO_TEST_PYTHON");
+            config.arguments = QStringList{
+                qEnvironmentVariable("GTO_ACP_FAKE_SERVER"),
+            };
+            config.workingDirectory = QCoreApplication::applicationDirPath();
+            config.environment.insert(QStringLiteral("FAKE_ACP_PERMISSION"), QStringLiteral("0"));
+        }
+        if (config.executable.isEmpty()
+            || (!config.arguments.isEmpty() && config.arguments.first().isEmpty())) {
             fail(QStringLiteral("test environment is incomplete"));
             return;
         }
@@ -62,7 +71,9 @@ private slots:
                     }
                 }
                 if (input && send) {
-                    input->setPlainText(QStringLiteral("test prompt"));
+                    const QString prompt = qEnvironmentVariable(
+                        "GTO_CHAT_PROMPT", QStringLiteral("test prompt"));
+                    input->setPlainText(prompt);
                     send->click();
                     m_sent = true;
                     m_waitReady.stop();
@@ -79,7 +90,9 @@ private slots:
             return;
         }
         const QString text = transcript->toPlainText();
-        if (!text.contains(QStringLiteral("Hello from fake ACP"))) {
+        const QString expected = qEnvironmentVariable(
+            "GTO_CHAT_EXPECT_TEXT", QStringLiteral("Hello from fake ACP"));
+        if (!text.contains(expected)) {
             return;
         }
         m_panel.shutdown();

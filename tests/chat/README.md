@@ -52,3 +52,24 @@ A real end-to-end run additionally requires a built DSH runtime, an `acp`
 profile with `plugins/dsh-gto-solver` installed, and a configured model
 credential. The fake server intentionally verifies the Qt protocol boundary
 without requiring network or model access.
+
+
+## Real ChatPanel smoke mode
+
+The same panel test can drive the real DSH ACP profile instead of the fake
+server. It requires a running GTO GUI API, an installed DSH profile, and a
+configured model credential in the process environment:
+
+```powershell
+$env:GTO_ACP_COMMAND='C:\nvm4w\nodejs\node.exe'
+$env:GTO_ACP_ARGS='--import tsx/esm apps/cli/src/bin.ts --profile acp'
+$env:GTO_ACP_CWD='F:\GTO-Agent\engines\dsh'
+$env:DSH_HOME='F:\GTO-Agent\.demo\dsh-home'
+$env:GTO_CHAT_PROMPT='请只调用 gto_get_state，用一句话回复 revision。'
+$env:GTO_CHAT_EXPECT_TEXT='revision'
+$env:QT_QPA_PLATFORM='offscreen'
+.\release\chat_panel_smoke_test.exe
+```
+
+`DEEPSEEK_API_KEY` must be present in the process environment. Do not place it
+in a tracked file.

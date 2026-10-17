@@ -869,11 +869,24 @@ RangePilot::AcpClientConfig dshClientConfig()
 void MainWindow::setupChatPanel()
 {
     chatPanel = new RangePilot::ChatPanel(this);
+    chatPanel->setMinimumWidth(380);
     chatDock = new QDockWidget(tr("AI Chat"), this);
     chatDock->setObjectName(QStringLiteral("aiChatDock"));
     chatDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    chatDock->setFeatures(QDockWidget::DockWidgetMovable
+                          | QDockWidget::DockWidgetFloatable
+                          | QDockWidget::DockWidgetClosable);
+    chatDock->setMinimumWidth(400);
     chatDock->setWidget(chatPanel);
     addDockWidget(Qt::RightDockWidgetArea, chatDock);
+    QTimer::singleShot(0, this, [this]() {
+        if (chatDock) {
+            chatDock->setFloating(true);
+            chatDock->show();
+            chatDock->resize(480, 760);
+            chatDock->raise();
+        }
+    });
     if (ui && ui->menusolver) {
         QAction *toggle = chatDock->toggleViewAction();
         toggle->setText(tr("AI Chat"));
