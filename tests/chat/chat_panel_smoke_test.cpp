@@ -33,6 +33,8 @@ public:
 
     void start()
     {
+        m_panel.resize(460, 720);
+        m_panel.show();
         AcpClientConfig config;
         const QString realCommand = qEnvironmentVariable("GTO_ACP_COMMAND");
         if (!realCommand.isEmpty()) {
@@ -94,6 +96,10 @@ private slots:
             "GTO_CHAT_EXPECT_TEXT", QStringLiteral("Hello from fake ACP"));
         if (!text.contains(expected)) {
             return;
+        }
+        const QString screenshot = qEnvironmentVariable("GTO_CHAT_SCREENSHOT");
+        if (!screenshot.isEmpty()) {
+            m_panel.grab().save(screenshot);
         }
         m_panel.shutdown();
         qInfo().noquote() << QStringLiteral("chat_panel_smoke=ok");

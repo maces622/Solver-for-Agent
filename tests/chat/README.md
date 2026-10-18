@@ -73,3 +73,7 @@ $env:QT_QPA_PLATFORM='offscreen'
 
 `DEEPSEEK_API_KEY` must be present in the process environment. Do not place it
 in a tracked file.
+
+Set `GTO_CHAT_SCREENSHOT` to an absolute PNG path to save the rendered
+ChatPanel after the expected assistant text arrives. This is useful for
+checking layout in headless test runs.
