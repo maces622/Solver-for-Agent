@@ -3,12 +3,15 @@
 
 #include "acp_client.h"
 
+#include <QHash>
+#include <QVector>
 #include <QWidget>
 
 class QLabel;
 class QPlainTextEdit;
 class QPushButton;
 class QTextBrowser;
+class QTimer;
 
 namespace RangePilot {
 
@@ -42,12 +45,29 @@ private slots:
     void onProcessStopped(int exitCode, const QString &stderrTail);
 
 private:
-    void appendBlock(const QString &role, const QString &text);
+    enum class EntryKind {
+        User,
+        Assistant,
+        Notice
+    };
+
+    struct ChatEntry
+    {
+        EntryKind kind = EntryKind::Notice;
+        QString text;
+    };
+
+    void appendUserMessage(const QString &text);
     void appendAssistantDelta(const QString &text);
     void appendNotice(const QString &text);
+    void renderTranscript();
     void scrollToBottom();
     void setStatus(const QString &text);
     void updateControls();
+
+    QVector<ChatEntry> m_entries;
+    QHash<QString, QString> m_toolTitles;
+    QTimer *m_renderTimer = nullptr;
 
     AcpClient *m_client = nullptr;
     QTextBrowser *m_transcript = nullptr;

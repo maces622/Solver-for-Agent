@@ -257,6 +257,7 @@ void AcpClient::onProcessFinished(int exitCode, QProcess::ExitStatus)
     m_sessionId.clear();
     m_pendingRequests.clear();
     m_serverRequests.clear();
+    m_toolTitles.clear();
     setBusy(false);
     emit processStopped(exitCode, m_stderrTail);
     if (!expected) {
@@ -318,9 +319,19 @@ void AcpClient::handleSessionUpdate(const QJsonObject &params)
     }
     if (type == QStringLiteral("tool_call")
         || type == QStringLiteral("tool_call_update")) {
+        const QString toolCallId = update.value(QStringLiteral("toolCallId")).toString();
+        QString title = update.value(QStringLiteral("title")).toString();
+        if (title.isEmpty()) {
+            title = update.value(QStringLiteral("name")).toString();
+        }
+        if (!title.isEmpty()) {
+            m_toolTitles.insert(toolCallId, title);
+        } else {
+            title = m_toolTitles.value(toolCallId);
+        }
         emit toolStatusChanged(
-            update.value(QStringLiteral("toolCallId")).toString(),
-            update.value(QStringLiteral("title")).toString(),
+            toolCallId,
+            title,
             update.value(QStringLiteral("status")).toString());
     }
 }

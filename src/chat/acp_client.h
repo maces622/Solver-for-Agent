@@ -90,6 +90,7 @@ private:
     QString m_sessionId;
     QHash<QString, ResponseHandler> m_pendingRequests;
     QHash<QString, QJsonValue> m_serverRequests;
+    QHash<QString, QString> m_toolTitles;
     qint64 m_nextRequestId = 1;
     qint64 m_nextServerRequestKey = 1;
     bool m_initialized = false;

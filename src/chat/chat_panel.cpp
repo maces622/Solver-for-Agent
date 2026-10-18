@@ -13,7 +13,7 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QTextBrowser>
-#include <QTextCharFormat>
+#include <QTimer>
 
 #include <memory>
 #include <QTextCursor>
@@ -35,6 +35,11 @@ ChatPanel::ChatPanel(QWidget *parent)
     m_toolStatusLabel = new QLabel(QStringLiteral("No active tool call"), this);
     m_toolStatusLabel->setWordWrap(true);
     m_toolStatusLabel->setStyleSheet(QStringLiteral("color: #555;"));
+
+    m_renderTimer = new QTimer(this);
+    m_renderTimer->setSingleShot(true);
+    m_renderTimer->setInterval(40);
+    connect(m_renderTimer, &QTimer::timeout, this, &ChatPanel::renderTranscript);
 
     m_transcript = new QTextBrowser(this);
     m_transcript->setOpenExternalLinks(false);
@@ -116,7 +121,7 @@ void ChatPanel::onSendClicked()
         appendNotice(QStringLiteral("DSH ACP session is not ready."));
         return;
     }
-    appendBlock(QStringLiteral("You"), text);
+    appendUserMessage(text);
     m_input->clear();
     m_assistantOpen = false;
     m_client->prompt(text);
@@ -171,10 +176,21 @@ void ChatPanel::onToolStatusChanged(const QString &toolCallId,
                                     const QString &title,
                                     const QString &status)
 {
-    Q_UNUSED(toolCallId)
+    if (!title.isEmpty()) {
+        m_toolTitles.insert(toolCallId, title);
+    }
+    const QString displayTitle = m_toolTitles.value(
+        toolCallId, title.isEmpty() ? QStringLiteral("Tool call") : title);
     m_toolStatusLabel->setText(
-        QStringLiteral("%1 [%2]").arg(title.isEmpty() ? QStringLiteral("Tool call") : title,
+        QStringLiteral("%1 [%2]").arg(displayTitle,
                                      status.isEmpty() ? QStringLiteral("running") : status));
+    if (!m_client->isBusy()) {
+        QTimer::singleShot(600, this, [this]() {
+            if (!m_client->isBusy()) {
+                m_toolStatusLabel->setText(QStringLiteral("No active tool call"));
+            }
+        });
+    }
 }
 
 void ChatPanel::onPermissionRequested(const QString &requestKey,
@@ -242,8 +258,13 @@ void ChatPanel::onPermissionRequested(const QString &requestKey,
 void ChatPanel::onPromptFinished(const QString &stopReason)
 {
     m_assistantOpen = false;
+    m_renderTimer->stop();
+    renderTranscript();
     m_toolStatusLabel->setText(QStringLiteral("No active tool call"));
-    setStatus(QStringLiteral("Connected; last turn: %1").arg(stopReason));
+    const QString displayStop = stopReason == QStringLiteral("end_turn")
+        ? QStringLiteral("completed")
+        : stopReason;
+    setStatus(QStringLiteral("Connected; last turn: %1").arg(displayStop));
     scrollToBottom();
     updateControls();
 }
@@ -265,47 +286,63 @@ void ChatPanel::onProcessStopped(int exitCode, const QString &stderrTail)
     updateControls();
 }
 
-void ChatPanel::appendBlock(const QString &role, const QString &text)
+void ChatPanel::appendUserMessage(const QString &text)
 {
-    QTextCursor cursor(m_transcript->document());
-    cursor.movePosition(QTextCursor::End);
-    if (!m_transcript->document()->isEmpty()) {
-        cursor.insertBlock();
-    }
-    cursor.insertText(role + QStringLiteral(": "), QTextCharFormat());
-    cursor.insertText(QStringLiteral("\n") + text);
-    scrollToBottom();
+    ChatEntry entry;
+    entry.kind = EntryKind::User;
+    entry.text = text;
+    m_entries.append(entry);
+    renderTranscript();
 }
 
 void ChatPanel::appendAssistantDelta(const QString &text)
 {
-    QTextCursor cursor(m_transcript->document());
-    cursor.movePosition(QTextCursor::End);
     if (!m_assistantOpen) {
-        if (!m_transcript->document()->isEmpty()) {
-            cursor.insertBlock();
-        }
-        QTextCharFormat roleFormat;
-        roleFormat.setFontWeight(QFont::Bold);
-        cursor.insertText(QStringLiteral("Agent:"), roleFormat);
-        cursor.insertBlock();
+        ChatEntry entry;
+        entry.kind = EntryKind::Assistant;
+        m_entries.append(entry);
         m_assistantOpen = true;
     }
-    cursor.insertText(text);
-    scrollToBottom();
+    if (!m_entries.isEmpty()) {
+        m_entries.last().text += text;
+    }
+    if (!m_renderTimer->isActive()) {
+        m_renderTimer->start();
+    }
 }
 
 void ChatPanel::appendNotice(const QString &text)
 {
-    QTextCursor cursor(m_transcript->document());
-    cursor.movePosition(QTextCursor::End);
-    if (!m_transcript->document()->isEmpty()) {
-        cursor.insertBlock();
+    ChatEntry entry;
+    entry.kind = EntryKind::Notice;
+    entry.text = text;
+    m_entries.append(entry);
+    renderTranscript();
+}
+
+void ChatPanel::renderTranscript()
+{
+    QStringList blocks;
+    blocks.reserve(m_entries.size());
+    for (const ChatEntry &entry : m_entries) {
+        if (entry.kind == EntryKind::User) {
+            blocks.append(QStringLiteral("**You**\n\n") + entry.text);
+        } else if (entry.kind == EntryKind::Assistant) {
+            blocks.append(QStringLiteral("**Agent**\n\n") + entry.text);
+        } else {
+            QString quoted;
+            const QStringList lines = entry.text.split(QLatin1Char('\n'));
+            for (const QString &line : lines) {
+                if (!quoted.isEmpty()) {
+                    quoted.append(QLatin1Char('\n'));
+                }
+                quoted.append(QStringLiteral("> "));
+                quoted.append(line);
+            }
+            blocks.append(quoted);
+        }
     }
-    QTextCharFormat format;
-    format.setForeground(QColor(QStringLiteral("#666666")));
-    format.setFontItalic(true);
-    cursor.insertText(text, format);
+    m_transcript->setMarkdown(blocks.join(QStringLiteral("\n\n")));
     scrollToBottom();
 }
 
