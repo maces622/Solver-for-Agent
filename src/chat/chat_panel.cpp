@@ -11,6 +11,7 @@
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QScrollBar>
 #include <QTextBrowser>
 #include <QTextCharFormat>
 
@@ -79,8 +80,7 @@ ChatPanel::ChatPanel(QWidget *parent)
             this, &ChatPanel::onProcessStopped);
 
     appendNotice(QStringLiteral(
-        "Chat is not connected. Start RangePilot with "
-        "RANGEPILOT_DSH_COMMAND/RANGEPILOT_DSH_ARGS or open settings to configure DSH."));
+        "Ask the GTO agent to read state, configure ranges, start a solve, or query a strategy node."));
     updateControls();
 }
 
@@ -244,6 +244,7 @@ void ChatPanel::onPromptFinished(const QString &stopReason)
     m_assistantOpen = false;
     m_toolStatusLabel->setText(QStringLiteral("No active tool call"));
     setStatus(QStringLiteral("Connected; last turn: %1").arg(stopReason));
+    scrollToBottom();
     updateControls();
 }
 
@@ -273,7 +274,7 @@ void ChatPanel::appendBlock(const QString &role, const QString &text)
     }
     cursor.insertText(role + QStringLiteral(": "), QTextCharFormat());
     cursor.insertText(QStringLiteral("\n") + text);
-    m_transcript->moveCursor(QTextCursor::End);
+    scrollToBottom();
 }
 
 void ChatPanel::appendAssistantDelta(const QString &text)
@@ -291,7 +292,7 @@ void ChatPanel::appendAssistantDelta(const QString &text)
         m_assistantOpen = true;
     }
     cursor.insertText(text);
-    m_transcript->moveCursor(QTextCursor::End);
+    scrollToBottom();
 }
 
 void ChatPanel::appendNotice(const QString &text)
@@ -305,7 +306,14 @@ void ChatPanel::appendNotice(const QString &text)
     format.setForeground(QColor(QStringLiteral("#666666")));
     format.setFontItalic(true);
     cursor.insertText(text, format);
+    scrollToBottom();
+}
+
+void ChatPanel::scrollToBottom()
+{
     m_transcript->moveCursor(QTextCursor::End);
+    m_transcript->verticalScrollBar()->setValue(
+        m_transcript->verticalScrollBar()->maximum());
 }
 
 void ChatPanel::setStatus(const QString &text)

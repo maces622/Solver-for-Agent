@@ -45,6 +45,7 @@ private:
     void appendBlock(const QString &role, const QString &text);
     void appendAssistantDelta(const QString &text);
     void appendNotice(const QString &text);
+    void scrollToBottom();
     void setStatus(const QString &text);
     void updateControls();
 
